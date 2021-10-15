@@ -1,8 +1,7 @@
 from django.shortcuts import render
-from django.views.generic import FormView
 
 
-class LoginView(FormView):
+def login(request):
     """
     请求参数
     Body:
@@ -24,7 +23,7 @@ class LoginView(FormView):
     pass
 
 
-class RegisterView(FormView):
+def register(request):
     """
     请求参数
     Body:
