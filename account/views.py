@@ -6,9 +6,9 @@ class LoginView(FormView):
     """
     请求参数
     Body:
-      参数名称	参数类型	是否必须	示例	    备注
-      username	T文本	是	    pawn
-      password	T文本	是	    123456
+    参数名称	    参数类型	是否必须	    示例	    备注
+    username	T文本	是	    pawn
+    password	T文本	是	    123456
 
     返回数据
     名称	     类型	是否必须	默认值	备注	其他信息
