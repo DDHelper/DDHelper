@@ -1,6 +1,12 @@
 from django.shortcuts import render
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+from django.contrib.auth import authenticate
+from django.views.decorators.csrf import csrf_exempt
+from account.models import Userinfo
+from django.urls import reverse
 
 
+@csrf_exempt
 def login(request):
     """
     请求参数
@@ -20,9 +26,21 @@ def login(request):
     如果登录成功，返回用户信息，通过Set-Cookies返回认证信息
     如果登录失败，code设置为403，不返回data
     """
-    pass
+    user = authenticate(username=request.POST.get('username'),
+                        password=request.POST.get('password'))
+    
+    if user is not None:
+        response_ = JsonResponse({'data': {'uid': user.__str__()}})
+        response_.set_cookie('name',
+                             request.POST.get('username'),
+                             max_age=3600)
+    else:
+        response_ = HttpResponse()
+        response_.status_code = 403
+    return response_
 
 
+@csrf_exempt
 def register(request):
     """
     请求参数
@@ -40,4 +58,14 @@ def register(request):
     如果注册成功，正常返回
     如果注册失败，code设置为403，msg为注册失败的原因
     """
+    user = Userinfo.objects.create_user(username=request.POST.get('username'),
+                                        password=request.POST.get('password'))
+    user.save()
+    flag = 1
+    if flag:
+        return HttpResponseRedirect(reverse('account:login'))
+    else:
+        response_ = HttpResponse()
+        response_.status_code = 403
+        response_.write('reason for failing to register')
     pass
