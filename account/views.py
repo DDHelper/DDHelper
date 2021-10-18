@@ -28,14 +28,22 @@ def login(request):
     """
     user = authenticate(username=request.POST.get('username'),
                         password=request.POST.get('password'))
-    
+
     if user is not None:
-        response_ = JsonResponse({'data': {'uid': user.__str__()}})
+        response_ = JsonResponse({
+            'code': 200,
+            'data': {
+                'uid': user.__str__()
+            }
+        })
         response_.set_cookie('name',
                              request.POST.get('username'),
                              max_age=3600)
     else:
-        response_ = HttpResponse()
+        response_ = JsonResponse({
+            'code': 403,
+            'msg': "reason for failing to login"
+        })
         response_.status_code = 403
     return response_
 
@@ -65,7 +73,9 @@ def register(request):
     if flag:
         return HttpResponseRedirect(reverse('account:login'))
     else:
-        response_ = HttpResponse()
+        response_ = JsonResponse({
+            'code': 403,
+            'msg': "reason for failing to register"
+        })
         response_.status_code = 403
-        response_.write('reason for failing to register')
-    pass
+        return response_
