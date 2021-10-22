@@ -1,6 +1,12 @@
 from django.shortcuts import render
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+from django.contrib.auth import authenticate
+from django.views.decorators.csrf import csrf_exempt
+from account.models import Userinfo
+from django.urls import reverse
 
 
+@csrf_exempt
 def login(request):
     """
     请求参数
@@ -20,9 +26,29 @@ def login(request):
     如果登录成功，返回用户信息，通过Set-Cookies返回认证信息
     如果登录失败，code设置为403，不返回data
     """
-    pass
+    user = authenticate(username=request.POST.get('username'),
+                        password=request.POST.get('password'))
+
+    if user is not None:
+        response_ = JsonResponse({
+            'code': 200,
+            'data': {
+                'uid': user.__str__()
+            }
+        })
+        response_.set_cookie('name',
+                             request.POST.get('username'),
+                             max_age=3600)
+    else:
+        response_ = JsonResponse({
+            'code': 403,
+            'msg': "user not existed or wrong password"
+        })
+        response_.status_code = 403
+    return response_
 
 
+@csrf_exempt
 def register(request):
     """
     请求参数
@@ -40,4 +66,17 @@ def register(request):
     如果注册成功，正常返回
     如果注册失败，code设置为403，msg为注册失败的原因
     """
-    pass
+    try:
+        user = Userinfo.objects.create_user(
+            username=request.POST.get('username'),
+            password=request.POST.get('password'))
+    except Exception as error:
+        response_ = JsonResponse({
+            'code': 403,
+            'msg': error.__str__()
+        })
+        response_.status_code = 403
+        return response_
+    else:
+        user.save()
+        return JsonResponse({'code': 500})
