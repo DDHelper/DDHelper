@@ -42,7 +42,7 @@ def login(request):
     else:
         response_ = JsonResponse({
             'code': 403,
-            'msg': "reason for failing to login"
+            'msg': "user not existed or wrong password"
         })
         response_.status_code = 403
     return response_
@@ -66,16 +66,17 @@ def register(request):
     如果注册成功，正常返回
     如果注册失败，code设置为403，msg为注册失败的原因
     """
-    user = Userinfo.objects.create_user(username=request.POST.get('username'),
-                                        password=request.POST.get('password'))
-    user.save()
-    flag = 1
-    if flag:
-        return HttpResponseRedirect(reverse('account:login'))
-    else:
+    try:
+        user = Userinfo.objects.create_user(
+            username=request.POST.get('username'),
+            password=request.POST.get('password'))
+    except Exception as error:
         response_ = JsonResponse({
             'code': 403,
-            'msg': "reason for failing to register"
+            'msg': error.__str__()
         })
         response_.status_code = 403
         return response_
+    else:
+        user.save()
+        return JsonResponse({'code': 500})
