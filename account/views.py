@@ -79,4 +79,4 @@ def register(request):
         return response_
     else:
         user.save()
-        return JsonResponse({'code': 500})
+        return JsonResponse({'code': 200})
