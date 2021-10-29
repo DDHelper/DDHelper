@@ -1,0 +1,185 @@
+{
+  "code": 0,
+  "msg": "",
+  "message": "",
+  "data": {
+    "has_more": 1,
+    "cards": [
+      {
+        "desc": {
+          "uid": 8401607,
+          "type": 1,
+          "rid": 578723830710982188,
+          "view": 94,
+          "repost": 1,
+          "comment": 0,
+          "like": 3,
+          "is_liked": 0,
+          "dynamic_id": 578723830710318219,
+          "timestamp": 1633583042,
+          "pre_dy_id": 578600410529573272,
+          "orig_dy_id": 578600410529573272,
+          "orig_type": 8,
+          "user_profile": {
+            "info": {
+              "uid": 8401607,
+              "uname": "无米酱Official",
+              "face": "https://i2.hdslb.com/bfs/face/bf19498c0490c9bf12a5ab646950ffe48ac1d2cf.jpg"
+            },
+            "card": {
+              "official_verify": {
+                "type": -1,
+                "desc": ""
+              }
+            },
+            "vip": {
+              "vipType": 2,
+              "vipDueDate": 1691596800000,
+              "vipStatus": 1,
+              "themeType": 0,
+              "label": {
+                "path": "",
+                "text": "年度大会员",
+                "label_theme": "annual_vip",
+                "text_color": "#FFFFFF",
+                "bg_style": 1,
+                "bg_color": "#FB7299",
+                "border_color": ""
+              },
+              "avatar_subscript": 1,
+              "nickname_color": "#FB7299",
+              "role": 3,
+              "avatar_subscript_url": "https://i0.hdslb.com/bfs/vip/icon_Certification_big_member_22_3x.png"
+            },
+            "pendant": {
+              "pid": 0,
+              "name": "",
+              "image": "",
+              "expire": 0,
+              "image_enhance": "",
+              "image_enhance_frame": ""
+            },
+            "decorate_card": {
+              "mid": 8401607,
+              "id": 2427,
+              "card_url": "https://i0.hdslb.com/bfs/garb/item/10a8fdcfad4927c88eae716135c52ffb6b830f36.png",
+              "card_type": 2,
+              "name": "湊-阿库娅粉丝专属",
+              "expire_time": 0,
+              "card_type_name": "免费",
+              "uid": 8401607,
+              "item_id": 2427,
+              "item_type": 3,
+              "big_card_url": "https://i0.hdslb.com/bfs/garb/item/10a8fdcfad4927c88eae716135c52ffb6b830f36.png",
+              "jump_url": "https://www.bilibili.com/h5/mall/fans/recommend/2452?navhide=1&mid=8401607&from=dynamic",
+              "fan": {
+                "is_fan": 1,
+                "number": 3652,
+                "color": "#f092da",
+                "num_desc": "003652"
+              },
+              "image_enhance": "https://i0.hdslb.com/bfs/garb/item/10a8fdcfad4927c88eae716135c52ffb6b830f36.png"
+            },
+            "rank": "10000",
+            "sign": "Log.bili(&quot;2333&quot;,&quot;乾杯 []~（￣▽￣）~*&quot;);",
+            "level_info": {
+              "current_level": 6
+            }
+          },
+          "uid_type": 1,
+          "status": 1,
+          "dynamic_id_str": "578723830710318219",
+          "pre_dy_id_str": "578600410529573272",
+          "orig_dy_id_str": "578600410529573272",
+          "rid_str": "578723830710982188",
+          "origin": {
+            "uid": 3051837,
+            "type": 8,
+            "rid": 975983031,
+            "acl": 0,
+            "view": 29805,
+            "repost": 132,
+            "like": 0,
+            "dynamic_id": 578600410529573272,
+            "timestamp": 1633554306,
+            "pre_dy_id": 0,
+            "orig_dy_id": 0,
+            "uid_type": 1,
+            "stype": 0,
+            "r_type": 1,
+            "inner_id": 0,
+            "status": 1,
+            "dynamic_id_str": "578600410529573272",
+            "pre_dy_id_str": "0",
+            "orig_dy_id_str": "0",
+            "rid_str": "975983031",
+            "bvid": "BV1P44y1x774"
+          }
+        },
+        "card": "{ \"user\": { \"uid\": 8401607, \"uname\": \"无米酱Official\", \"face\": \"https:\\/\\/i2.hdslb.com\\/bfs\\/face\\/bf19498c0490c9bf12a5ab646950ffe48ac1d2cf.jpg\" }, \"item\": { \"rp_id\": 578723830710982188, \"uid\": 8401607, \"content\": \"怎么ll总是能整出这种离谱的花活\", \"ctrl\": \"\", \"orig_dy_id\": 578600410529573272, \"pre_dy_id\": 578600410529573272, \"timestamp\": 1633583042, \"reply\": 0, \"orig_type\": 8 }, \"origin\": \"{\\\"aid\\\":975983031,\\\"attribute\\\":0,\\\"cid\\\":420969477,\\\"copyright\\\":1,\\\"ctime\\\":1633544183,\\\"desc\\\":\\\"\\\",\\\"dimension\\\":{\\\"height\\\":1080,\\\"rotate\\\":0,\\\"width\\\":1920},\\\"duration\\\":134,\\\"dynamic\\\":\\\"\\\",\\\"first_frame\\\":\\\"https:\\\\\\/\\\\\\/i0.hdslb.com\\\\\\/bfs\\\\\\/storyff\\\\\\/n211007a22hgqcep7lw7fa3rxkwf49ch_firsti.jpg\\\",\\\"jump_url\\\":\\\"bilibili:\\\\\\/\\\\\\/video\\\\\\/975983031\\\\\\/?page=1&player_preload=null&player_width=1920&player_height=1080&player_rotate=0\\\",\\\"owner\\\":{\\\"face\\\":\\\"https:\\\\\\/\\\\\\/i0.hdslb.com\\\\\\/bfs\\\\\\/face\\\\\\/8f95bf1ba5ddf1ce9f6f07b5c746f0ca33c94eef.jpg\\\",\\\"mid\\\":3051837,\\\"name\\\":\\\"星无\\\"},\\\"pic\\\":\\\"https:\\\\\\/\\\\\\/i1.hdslb.com\\\\\\/bfs\\\\\\/archive\\\\\\/b442a9fea9e412da5b4787659a39d8da12cf3b35.jpg\\\",\\\"player_info\\\":null,\\\"pubdate\\\":1633554306,\\\"rights\\\":{\\\"autoplay\\\":1,\\\"bp\\\":0,\\\"download\\\":0,\\\"elec\\\":0,\\\"hd5\\\":1,\\\"is_cooperation\\\":1,\\\"movie\\\":0,\\\"no_background\\\":0,\\\"no_reprint\\\":1,\\\"pay\\\":0,\\\"ugc_pay\\\":0,\\\"ugc_pay_preview\\\":0},\\\"share_subtitle\\\":\\\"已观看80.0万次\\\",\\\"short_link\\\":\\\"https:\\\\\\/\\\\\\/b23.tv\\\\\\/BV1P44y1x774\\\",\\\"short_link_v2\\\":\\\"https:\\\\\\/\\\\\\/b23.tv\\\\\\/BV1P44y1x774\\\",\\\"stat\\\":{\\\"aid\\\":975983031,\\\"coin\\\":5268,\\\"danmaku\\\":1473,\\\"dislike\\\":0,\\\"favorite\\\":10760,\\\"his_rank\\\":0,\\\"like\\\":38786,\\\"now_rank\\\":0,\\\"reply\\\":882,\\\"share\\\":4270,\\\"view\\\":808051},\\\"state\\\":0,\\\"tid\\\":27,\\\"title\\\":\\\"唐可可给姐姐打电话未删减版\\\",\\\"tname\\\":\\\"综合\\\",\\\"videos\\\":1}\", \"origin_extend_json\": \"{\\\"\\\":{\\\"ogv\\\":{\\\"ogv_id\\\":0}},\\\"dispute\\\":{\\\"content\\\":\\\"\\\"},\\\"from\\\":{\\\"from\\\":\\\"\\\"},\\\"like_icon\\\":{\\\"action\\\":\\\"\\\",\\\"action_url\\\":\\\"\\\",\\\"end\\\":\\\"\\\",\\\"end_url\\\":\\\"\\\",\\\"start\\\":\\\"\\\",\\\"start_url\\\":\\\"\\\"},\\\"topic\\\":{\\\"is_attach_topic\\\":1}}\", \"origin_user\": { \"info\": { \"uid\": 3051837, \"uname\": \"星无\", \"face\": \"https:\\/\\/i0.hdslb.com\\/bfs\\/face\\/8f95bf1ba5ddf1ce9f6f07b5c746f0ca33c94eef.jpg\" }, \"card\": { \"official_verify\": { \"type\": -1, \"desc\": \"\" } }, \"vip\": { \"vipType\": 2, \"vipDueDate\": 1637164800000, \"vipStatus\": 1, \"themeType\": 0, \"label\": { \"path\": \"\", \"text\": \"年度大会员\", \"label_theme\": \"annual_vip\", \"text_color\": \"#FFFFFF\", \"bg_style\": 1, \"bg_color\": \"#FB7299\", \"border_color\": \"\" }, \"avatar_subscript\": 1, \"nickname_color\": \"#FB7299\", \"role\": 3, \"avatar_subscript_url\": \"https:\\/\\/i0.hdslb.com\\/bfs\\/vip\\/icon_Certification_big_member_22_3x.png\" }, \"pendant\": { \"pid\": 0, \"name\": \"\", \"image\": \"\", \"expire\": 0, \"image_enhance\": \"\", \"image_enhance_frame\": \"\" }, \"rank\": \"10000\", \"sign\": \"所谓的剪辑，就是能做出自己想要的故事\\n粉丝群:679242246\", \"level_info\": { \"current_level\": 6 } } }",
+        "extend_json": "{\"from\":{\"emoji_type\":1,\"up_close_comment\":0},\"like_icon\":{\"action\":\"\",\"action_url\":\"\",\"end\":\"\",\"end_url\":\"\",\"start\":\"\",\"start_url\":\"\"}}",
+        "extra": {
+          "is_space_top": 0
+        },
+        "display": {
+          "origin": {
+            "topic_info": {
+              "topic_details": [
+                {
+                  "topic_id": 18374693,
+                  "topic_name": "lovelivesuperstar",
+                  "is_activity": 0,
+                  "topic_link": ""
+                },
+                {
+                  "topic_id": 14778058,
+                  "topic_name": "平安名堇",
+                  "is_activity": 1,
+                  "topic_link": "https://www.bilibili.com/blackboard/dynamic/130155"
+                },
+                {
+                  "topic_id": 2481725,
+                  "topic_name": "lovelive",
+                  "is_activity": 1,
+                  "topic_link": "https://www.bilibili.com/blackboard/dynamic/28629"
+                },
+                {
+                  "topic_id": 14741626,
+                  "topic_name": "唐可可",
+                  "is_activity": 1,
+                  "topic_link": "https://www.bilibili.com/blackboard/dynamic/74059"
+                },
+                {
+                  "topic_id": 10272917,
+                  "topic_name": "liyuu",
+                  "is_activity": 1,
+                  "topic_link": "https://www.bilibili.com/blackboard/dynamic/96819"
+                }
+              ]
+            },
+            "usr_action_txt": "投稿了视频",
+            "relation": {
+              "status": 1,
+              "is_follow": 0,
+              "is_followed": 0
+            },
+            "show_tip": {
+              "del_tip": "要删除动态吗？"
+            },
+            "cover_play_icon_url": "https://i0.hdslb.com/bfs/album/2269afa7897830b397797ebe5f032b899b405c67.png"
+          },
+          "relation": {
+            "status": 1,
+            "is_follow": 0,
+            "is_followed": 0
+          },
+          "comment_info": {
+            "comment_ids": ""
+          }
+        }
+      }
+    ],
+    "next_offset": 550854548129787332,
+    "_gt_": 0
+  }
+}
