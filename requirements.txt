@@ -1,1 +1,2 @@
-django
+Django>=3.2.7
+requests>=2.26.0
