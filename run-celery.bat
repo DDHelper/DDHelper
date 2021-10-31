@@ -1,0 +1,1 @@
+celery -A DDHelper worker -l info -P eventlet -E

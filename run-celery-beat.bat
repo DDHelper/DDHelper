@@ -1,0 +1,1 @@
+celery -A DDHelper beat -l info
