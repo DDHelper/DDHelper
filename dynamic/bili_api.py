@@ -1,6 +1,21 @@
 import requests
 
 
+def get_data_if_valid(rsp, fallback_msg="unknown"):
+    """
+    如果rsp合理，则提取出data部分，否则返回None
+    :param rsp: 需要做提取的json
+    :param fallback_msg: rsp为None时的错误信息
+    :return: json里的data部分, 发生错误时的错误信息
+    """
+    if rsp is None:
+        return None, fallback_msg
+    if rsp['code'] == 0:
+        return rsp['data'], None
+    else:
+        return None, rsp['msg']
+
+
 # noinspection PyTypeChecker
 def space_history(host_uid: int, offset_dynamic_id: int):
     """
@@ -18,7 +33,10 @@ def space_history(host_uid: int, offset_dynamic_id: int):
             "platform": "web"
         },
         timeout=2)
-    return rsp.json()
+    if rsp.status_code != 200:
+        return None
+    else:
+        return rsp.json()
 
 
 # noinspection PyTypeChecker
@@ -35,7 +53,10 @@ def user_profile(mid: int):
             "jsonp": "jsonp"
         },
         timeout=2)
-    return rsp.json()
+    if rsp.status_code != 200:
+        return None
+    else:
+        return rsp.json()
 
 
 if __name__ == '__main__':
