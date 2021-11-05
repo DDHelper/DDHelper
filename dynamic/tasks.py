@@ -1,16 +1,27 @@
 from celery import shared_task
+from celery.utils.log import get_task_logger
 from django.utils import timezone
 from django.db import transaction, DatabaseError
+import logging
 from . import dsync
 from . import models
 
+logger: logging.Logger = get_task_logger(__name__)
+
 
 @shared_task(ignore_result=True)
-def call_full_sync(chunk_size):
+def call_full_sync(chunk_size=10):
     """
-    请求一次全动态同步，实际上是发出一个链式请求，包含所有需要更新的成员
+    请求一次全动态同步。
+    同步耗时可以估计为：
+    成员数*每个成员预计时间（0.5s） / 有效worker数量
+    :param chunk_size: 每一块请求的成员数量
     :return:
     """
+
+    all_mid = list(models.Member.objects.values_list("mid", flat=True))
+    chunked = sync_member.chunks(zip(all_mid), len(all_mid) // chunk_size)
+    chunked.apply_async()
 
 
 @shared_task(ignore_result=True)
@@ -27,8 +38,10 @@ def add_member(mid: int, initial_sync=True):
         msg = dsync.update_member_profile(member)
         if msg:
             # 更新信息失败
-            return
+            logger.warning(f"更新信息失败: mid={mid} msg={msg}")
+            raise Exception(f"更新信息失败: mid={mid} msg={msg}")
         member.save()
+        logger.info(f"添加新成员: mid={mid}")
 
         if initial_sync:
             sync_member.delay(mid)
@@ -53,7 +66,8 @@ def sync_member(mid: int, min_interval=30):
         did = latest_dynamic.dynamic_id if latest_dynamic is not None else 0
         dynamics, msg = dsync.get_all_dynamic_since(member, did)
         if dynamics is None:  # 拉取动态失败了
-            return  # TODO: 添加retry机制
+            logger.warning(f"拉取动态失败: mid={mid} msg={msg}")
+            raise Exception(f"拉取动态失败: mid={mid} msg={msg}")  # TODO: 添加retry机制
 
         member.last_dynamic_update = timezone.now()
         if len(dynamics) != 0:
@@ -64,7 +78,8 @@ def sync_member(mid: int, min_interval=30):
                 for dy in dynamics:
                     dy.save()
                 member.save()
-        except DatabaseError:
+        except DatabaseError as e:
             # 更新失败
-            return  # TODO: 添加retry机制
+            logger.warning(f"更新数据库失败: mid={mid} msg={str(e)}")
+            raise e  # TODO: 添加retry机制
 
