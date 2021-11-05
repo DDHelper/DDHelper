@@ -1,1 +1,1 @@
-celery -A DDHelper worker -l info -P solo -E
+celery -A DDHelper worker -l info -P solo -E -n w%1@%h
