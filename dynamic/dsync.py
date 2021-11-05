@@ -69,17 +69,21 @@ def get_all_dynamic_since(member: Member, dynamic_id, max_count=50, max_time=30)
         data, msg = get_data_if_valid(rsp)
         if data is None:
             return None, msg
+        if data['has_more'] == 0:
+            break
         cards = data['cards']
         cards.sort(key=lambda c: c["desc"]["dynamic_id"], reverse=True)  # 降序排列
+        break_outer = False
         for card in cards:
             dy = parse_dynamic_card(card, member=member)
             if dy.dynamic_id <= dynamic_id:
+                break_outer = True
                 break  # 已经到达了目标位置
             else:
                 dynamics.append(dy)
         if data['has_more'] == 1:
             next_offset = data['next_offset']
-        if len(dynamics) >= max_count:
+        if len(dynamics) >= max_count or break_outer:
             break
         # TODO：根据时间判断是否终止循环
     return dynamics, None
