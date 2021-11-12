@@ -34,6 +34,11 @@ CELERY_BEAT_SCHEDULE = {
 
 }
 
+CELERY_TASK_ROUTES = ([
+    ('dynamic.tasks.*', {'queue': 'dynamic'}),
+    ('biliapi.tasks.*', {'queue': 'biliapi'}),
+],)
+
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-ftlcjkddikq@s5k*7+i4h-b(r%g6po%1cd2h40$uvz7cafhatc')
