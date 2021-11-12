@@ -1,9 +1,20 @@
-import requests
+import logging
 import time
+from contextlib import contextmanager
+from functools import wraps
+
+import requests
+from celery import shared_task
+from celery.utils.log import get_task_logger
+
+from DDHelper import settings
+
+logger: logging.Logger = get_task_logger(__name__)
+
 
 # 默认每次请求后的等待时间（秒）
-# 每台机器最多两个worker
-DEFAULT_WAIT = 1.5
+# 推荐每台机器最多两个worker
+DEFAULT_WAIT = 1.5 if not settings.TESTING else 0.1
 
 BLOCKED = False
 BLOCKED_START_TIME = None
@@ -18,11 +29,31 @@ class BlockedException(Exception):
         super(BlockedException, self).__init__(msg)
 
 
-def default_wait():
+@contextmanager
+def _default_wait():
     """
     每次请求后的等待时间，防止请求被拦截
     """
-    time.sleep(DEFAULT_WAIT)
+    start_time = time.time()
+    try:
+        yield
+    except Exception as e:
+        raise e
+    else:
+        time_cost = time.time() - start_time
+        if time_cost < DEFAULT_WAIT:
+            time.sleep(DEFAULT_WAIT - time_cost)
+
+
+def with_default_wait(func):
+    """
+    控制一个请求的耗时
+    """
+    @wraps(func)
+    def call_func(*args, **kwargs):
+        with _default_wait():
+            return func(*args, **kwargs)
+    return call_func
 
 
 def check_response(rsp):
@@ -58,7 +89,6 @@ def check_security():
     在尝试发出请求前做安全检测，默认延迟一段时间，并在被拦截时停止发送新的请求
     :return:
     """
-    default_wait()
     if BLOCKED:
         raise BlockedException(f"[{BLOCKED_START_TIME}] 当前机器或ip可能被b站拦截，已停止所有请求，请管理员手动处理")
 
@@ -79,6 +109,8 @@ def get_data_if_valid(rsp, fallback_msg="unknown"):
 
 
 # noinspection PyTypeChecker
+@shared_task()
+@with_default_wait
 def space_history(host_uid: int, offset_dynamic_id: int):
     """
     获取动态列表
@@ -104,6 +136,8 @@ def space_history(host_uid: int, offset_dynamic_id: int):
 
 
 # noinspection PyTypeChecker
+@shared_task()
+@with_default_wait
 def user_profile(mid: int):
     """
     获取b站用户数据
