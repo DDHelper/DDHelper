@@ -1,5 +1,11 @@
+from celery import shared_task, chord
+from celery.utils.log import get_task_logger
+import logging
 import requests
 import time
+
+logger: logging.Logger = get_task_logger(__name__)
+
 
 # 默认每次请求后的等待时间（秒）
 # 每台机器最多两个worker
@@ -79,6 +85,7 @@ def get_data_if_valid(rsp, fallback_msg="unknown"):
 
 
 # noinspection PyTypeChecker
+@shared_task()
 def space_history(host_uid: int, offset_dynamic_id: int):
     """
     获取动态列表
@@ -104,6 +111,7 @@ def space_history(host_uid: int, offset_dynamic_id: int):
 
 
 # noinspection PyTypeChecker
+@shared_task()
 def user_profile(mid: int):
     """
     获取b站用户数据

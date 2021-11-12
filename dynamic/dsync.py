@@ -1,6 +1,5 @@
-from .bili_api import get_data_if_valid, user_profile, space_history
+from biliapi.tasks import get_data_if_valid, user_profile, space_history
 from .models import Member, Dynamic
-from typing import Optional
 from django.utils import timezone
 import warnings
 
