@@ -1,17 +1,20 @@
-from celery import shared_task, chord
-from celery.utils.log import get_task_logger
 import logging
+import time
 from contextlib import contextmanager
 from functools import wraps
+
 import requests
-import time
+from celery import shared_task
+from celery.utils.log import get_task_logger
+
+from DDHelper import settings
 
 logger: logging.Logger = get_task_logger(__name__)
 
 
 # 默认每次请求后的等待时间（秒）
-# 每台机器最多两个worker
-DEFAULT_WAIT = 1.5
+# 推荐每台机器最多两个worker
+DEFAULT_WAIT = 1.5 if not settings.TESTING else 0.1
 
 BLOCKED = False
 BLOCKED_START_TIME = None

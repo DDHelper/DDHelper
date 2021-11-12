@@ -10,11 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 import os
+import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
@@ -39,6 +41,8 @@ CELERY_TASK_ROUTES = ([
     ('biliapi.tasks.*', {'queue': 'biliapi'}),
 ],)
 
+if TESTING:
+    CELERY_TASK_ALWAYS_EAGER = True
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-ftlcjkddikq@s5k*7+i4h-b(r%g6po%1cd2h40$uvz7cafhatc')
