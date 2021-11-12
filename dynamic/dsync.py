@@ -2,6 +2,9 @@ from biliapi.tasks import get_data_if_valid, user_profile, space_history
 from .models import Member, Dynamic
 from django.utils import timezone
 import warnings
+import pytz
+
+CST_TIME_ZONE = pytz.timezone("Asia/Shanghai")
 
 
 class DsyncException(Exception):
@@ -101,7 +104,7 @@ def parse_dynamic_card(card, member: Member = None, set_member=False):
     dy = Dynamic()
     dy.dynamic_id = desc['dynamic_id']
     dy.dynamic_type = desc['type']
-    dy.timestamp = timezone.make_aware(timezone.datetime.fromtimestamp(desc['timestamp']))
+    dy.timestamp = timezone.datetime.fromtimestamp(desc['timestamp'], tz=CST_TIME_ZONE)
     dy.raw = card
 
     if member is not None:
