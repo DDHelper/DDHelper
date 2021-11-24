@@ -1,4 +1,5 @@
 from django.contrib.auth.models import Group, User
+from django.db.models.base import Model
 from django.http.response import HttpResponseForbidden, HttpResponseServerError, JsonResponse, HttpResponseServerError
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
@@ -27,7 +28,7 @@ def search(request):
      - search_result_icon   string  非必须 up主头像地址	
     code	integer	必须
     """
-    name = request.GET.get("search_name")
+    name = request.GET.get('search_name')
     search_result = []
     try:
         for result in search_user_name(name).json()["data"]["result"]:
@@ -53,23 +54,19 @@ def showlist(request):
     # URL形式传入需要切换的分组名
     # 传入gid，若无gid传入则显示默认全部分组
     # 传回显示分组的用户信息以及分组列表
-    try:
-        query_result = list(SubscribeList.objects.filter(group__gid = request.GET.get('gid')).values('mem__mid'))
-    except KeyError:
-        # GET中没有分组名，访问默认分组即全体关注列表
-        all_group = UserGroup.objects.get(group_name = 'all', user__uid = request.user.uid)#当前用户的默认全体分组
-        query_result = list(SubscribeList.objects.filter(group = all_group).values('mem__mid'))
-    finally:
-        mem_list = []
-        group_list = []
-        for mem in query_result:
-            mem_information = SubscribeMember.objects.get(pk=mem['mem_id'])
-            mem_list.append({'mid': mem_information.mid, 'face': mem_information.face, 'name': mem_information.name})
-        for group in UserGroup.objects.filter(user__uid = request.user.uid):
-            group_list.append({'gid':group.gid, 'group_name':group.group_name})
-        rsp = JsonResponse({'member_data': mem_list, 'group_list': group_list})
-        rsp.status_code = 200
-        return rsp
+    query_result = list(SubscribeList.objects.filter(
+                                                    group__gid = request.GET.get('gid',default = UserGroup.objects.get(group_name = 'all', user = request.user).gid)
+                                                    ).values('mem__mid'))#若无gid传入，则选择默认全体分组
+    mem_list = []
+    group_list = []
+    for mem in query_result:
+        mem_information = SubscribeMember.objects.get(pk=mem['mem__mid'])
+        mem_list.append({'mid': mem_information.mid, 'face': mem_information.face, 'name': mem_information.name})
+    for group in UserGroup.objects.filter(user__uid = request.user.uid):
+        group_list.append({'gid':group.gid, 'group_name':group.group_name})
+    rsp = JsonResponse({'member_data': mem_list, 'group_list': group_list})
+    rsp.status_code = 200
+    return rsp
 
 
 @login_required
@@ -84,9 +81,11 @@ def mem_subscribe(request):
             return JsonResponse({'result': 'fail'})
         else:
             obj_mem = SubscribeMember.objects.get(mid = obj_mid)    
-    for obj_gid in request.POST.get('gid'):
-        SubscribeList.objects.create(mem = obj_mem, group = UserGroup.objects.get(gid=obj_gid))
-    SubscribeList.objects.create(mem = obj_mem, group = UserGroup.objects.get(group_name = 'all', user = request.user))        
+    for obj_gid in request.POST.getlist('gid'):
+        obj_group = UserGroup.objects.get(gid=obj_gid)
+        if obj_group.user == request.user:
+            SubscribeList.objects.update_or_create(mem = obj_mem, group = obj_group)
+    SubscribeList.objects.update_or_create(mem = obj_mem, group = UserGroup.objects.get(group_name = 'all', user = request.user))        
     return JsonResponse({'result': 'success'})
 
 
@@ -94,7 +93,7 @@ def mem_subscribe(request):
 def add_group(request):
     #POST提交新增分组的名称group_name
     #返回是否关注成功的结果result(success/fail)
-    UserGroup.objects.create(user = UserGroup.objects.filter(user__uid = request.user.uid), 
+    UserGroup.objects.create(user = Userinfo.objects.get(uid = request.user.uid), 
                             group_name = request.POST.get('group_name'))
     return JsonResponse({'result': 'success'})
 
@@ -104,18 +103,20 @@ def add_group(request):
 def update_group(request):
     #POST中指名修改类型type(rename/delete)，要修改的分组gid，重命名时还要传递重命名的名称group_name
     #返回是否关注成功的结果result(success/fail)
+    try:
+        obj_group = UserGroup.objects.get(gid = request.POST.get('gid'), user = Userinfo.objects.get(uid = request.user.uid))
+    except UserGroup.DoesNotExist:
+        return JsonResponse({'result': 'fail'})
     if request.POST.get('type') == 'rename':
-        obj_group = UserGroup.objects.get(gid = request.POST.get('gid'))
         obj_group.group_name = request.POST.get('group_name')
         obj_group.save()
         return JsonResponse({'result': 'success'})
     elif request.POST.get('type') == 'delete':
-        obj_group = UserGroup.objects.get(gid = request.POST.get('gid'))
         SubscribeList.objects.filter(group = obj_group).delete()
         obj_group.delete()
         return JsonResponse({'result': 'success'})
     else:
-        return HttpResponseServerError("wrong type of updating")
+        return JsonResponse({'result': 'fail'})
 
 
 @login_required
@@ -124,9 +125,10 @@ def mem_move(request):
     #返回是否关注成功的结果result(success/fail)
     obj_mid = request.POST.get('mid')    #需要移动的对象，以mid传递
     obj_mem = SubscribeMember.objects.get(mid = obj_mid)
-    new_group = request.POST.get('gid')
-    new_group = new_group.append(UserGroup.objects.get(group_name = 'all', user = request.user).gid)
-    cur_group = list(SubscribeList.objects.filter(group__user = request.user, mem = obj_mem).values('group__gid'))
+    new_group = request.POST.getlist('gid')
+    new_group.append(str(UserGroup.objects.get(group_name = 'all', user = request.user).gid))
+    cur_group = list(SubscribeList.objects.filter(group__user = request.user, mem = obj_mem).values_list('group__gid',flat=True))
+    cur_group = list(map(str, cur_group))
     gid_add = list(set(new_group).difference(set(cur_group)))
     gid_del = list(set(cur_group).difference(set(new_group)))
     for temp_gid in gid_add:
@@ -134,7 +136,6 @@ def mem_move(request):
     for temp_gid in gid_del:
         SubscribeList.objects.get(mem = obj_mem, group = UserGroup.objects.get(gid=temp_gid)).delete()    
     return JsonResponse({'result': 'success'})
-
 
 
 def add_new_member(Memmid):
@@ -145,7 +146,7 @@ def add_new_member(Memmid):
         if result["result_type"] == 'user' and len(result["data"]) == 1:
             object_member = result["data"][0]
             if object_member["fans"] > 10000 and object_member["is_upuser"] == 1:
-                SubscribeMember.objects.create(mid = Memmid, name = object_member["uname"], face = object_member["upic"])
+                SubscribeMember.objects.update_or_create(mid = Memmid, name = object_member["uname"], face = object_member["upic"])
                 return True
             else:
                 return False
