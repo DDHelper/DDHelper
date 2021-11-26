@@ -27,6 +27,9 @@ class ListManageTestCase(TestCase):#检测列表管理功能
         self.user2 = Userinfo.objects.create_user(   
             username='test_user2',
             password='12345678')
+        self.user3 = Userinfo.objects.create_user(
+            username='test_user3',
+            password='12345678')
         self.c = Client()
         self.c.login(username = 'test_user', password = '12345678')
         self.mem1 = SubscribeMember.objects.create(
@@ -99,6 +102,11 @@ class ListManageTestCase(TestCase):#检测列表管理功能
         self.assertEquals(list(map(lambda d:d['group_name'], response.json()['group_list'])),['all','my_fav1','my_fav2'])#测试访问分组f2分组列表正确
         response = self.c.get('/subscribe/showlist/')
         self.assertEquals(list(map(lambda d:d['mid'], response.json()['member_data'])), [self.mem1.mid,self.mem3.mid])#测试访问默认全体分组分组成员正确
-        self.assertEquals(list(map(lambda d:d['group_name'], response.json()['group_list'])),['all','my_fav1','my_fav2'])#测试访问默认全体分组分组列表正确
+        self.assertEquals(list(map(lambda d:d['group_name'], response.json()['group_list'])),['all','my_fav1','my_fav2'])#测试访问默认全体分组分组列表正确\
+    def test_all_group(self):
+        c_temp = Client()
+        c_temp.login(username = 'test_user3', password = '12345678')
+        response = c_temp.get('/subscribe/showlist/')
+        self.assertEquals(list(map(lambda d:d['group_name'], response.json()['group_list'])),['all'])# 测试能够自动创建all分组
 
         
