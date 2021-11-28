@@ -29,6 +29,17 @@ class BlockedException(Exception):
         super(BlockedException, self).__init__(msg)
 
 
+def get_random_proxy():
+    """
+    get random proxy from proxypool
+    :return: proxy
+    """
+    if settings.PROXY_POOL:
+        return {'http': "http://" + requests.get(settings.PROXY_POOL).text.strip()}
+    else:
+        return None
+
+
 @contextmanager
 def _default_wait():
     """
@@ -127,7 +138,9 @@ def space_history(host_uid: int, offset_dynamic_id: int):
             "offset_dynamic_id": offset_dynamic_id
         },
         headers=headers,
-        timeout=2)
+        timeout=2,
+        proxies=get_random_proxy()
+    )
     check_response(rsp)
     if rsp.status_code != 200:
         return None
@@ -152,7 +165,9 @@ def user_profile(mid: int):
             "jsonp": "jsonp"
         },
         headers=headers,
-        timeout=2)
+        timeout=2,
+        proxies=get_random_proxy()
+    )
     check_response(rsp)
     if rsp.status_code != 200:
         return None
@@ -189,6 +204,7 @@ def user_stat(mid: int):
 def search_user_name(name: str):
     """
     根据关键字搜索用户名
+    由于对于延迟敏感，不使用代理池，也不使用默认延迟
     :param name: 关键字
     :return:
     """
@@ -211,6 +227,7 @@ def search_user_name(name: str):
 def search_user_id(mid: int):
     """
     获取mid对应的成员的信息
+    由于对于延迟敏感，不使用代理池，也不使用默认延迟
     :param mid:
     :return:
     """

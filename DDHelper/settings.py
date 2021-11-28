@@ -41,7 +41,10 @@ CELERY_TASK_ROUTES = ([
     ('biliapi.tasks.*', {'queue': 'biliapi'}),
 ],)
 
+PROXY_POOL = os.environ.get('PROXY_POOL', 'http://edrows.top:5555/random')
+
 if TESTING:
+    PROXY_POOL = None
     CELERY_TASK_ALWAYS_EAGER = True
 
 # SECURITY WARNING: keep the secret key used in production secret!
