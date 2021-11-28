@@ -155,8 +155,74 @@ def user_profile(mid: int):
         timeout=2)
     check_response(rsp)
     if rsp.status_code != 200:
-        print(rsp.status_code)
-        print(rsp.json())
+        return None
+    else:
+        return rsp.json()
+
+
+# noinspection PyTypeChecker
+@shared_task()
+def user_stat(mid: int):
+    """
+    获取b站用户数据
+    :param mid: b站用户id
+    :return:
+    """
+    check_security()
+    rsp = requests.get(
+        "https://api.bilibili.com/x/relation/stat",
+        params={
+            "vmid": mid,
+            "jsonp": "jsonp"
+        },
+        headers=headers,
+        timeout=2)
+    check_response(rsp)
+    if rsp.status_code != 200:
+        return None
+    else:
+        return rsp.json()
+
+
+# noinspection PyTypeChecker
+@shared_task
+def search_user_name(name: str):
+    """
+    根据关键字搜索用户名
+    :param name: 关键字
+    :return:
+    """
+    check_security()
+    rsp = requests.get("http://api.bilibili.com/x/web-interface/search/type",
+                       params={
+                           "search_type": "bili_user",
+                           "keyword": name
+                       },
+                       timeout=2)
+    check_response(rsp)
+    if rsp.status_code != 200:
+        return None
+    else:
+        return rsp.json()
+
+
+# noinspection PyTypeChecker
+@shared_task
+def search_user_id(mid: int):
+    """
+    获取mid对应的成员的信息
+    :param mid:
+    :return:
+    """
+    check_security()
+    rsp = requests.get("http://api.bilibili.com/x/web-interface/search/all/v2",
+                       params={
+                           "search_type": "bili_user",
+                           "keyword": f'uid:{mid}'
+                       },
+                       timeout=2)
+    check_response(rsp)
+    if rsp.status_code != 200:
         return None
     else:
         return rsp.json()
