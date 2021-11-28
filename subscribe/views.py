@@ -145,7 +145,7 @@ def add_new_member(Memmid):
     for result in search_result:
         if result["result_type"] == 'user' and len(result["data"]) == 1:
             object_member = result["data"][0]
-            if object_member["fans"] > 10000 and object_member["is_upuser"] == 1:
+            if object_member["fans"] > 1000 and object_member["is_upuser"] == 1:
                 SubscribeMember.objects.update_or_create(mid=Memmid, name=object_member["uname"],
                                                          face=object_member["upic"])
                 return True
