@@ -55,7 +55,7 @@ def showlist(request):
     # 传入gid，若无gid传入则显示默认全部分组
     # 传回显示分组的用户信息以及分组列表
     query_result = list(SubscribeList.objects.filter(
-                                                    group__gid = request.GET.get('gid',default = UserGroup.objects.get(group_name = 'all', user = request.user).gid)
+                                                    group__gid = request.GET.get('gid',default = UserGroup.objects.get_or_create(group_name = 'all', user = request.user)[0].gid)
                                                     ).values('mem__mid'))#若无gid传入，则选择默认全体分组
     mem_list = []
     group_list = []
@@ -85,7 +85,7 @@ def mem_subscribe(request):
         obj_group = UserGroup.objects.get(gid=obj_gid)
         if obj_group.user == request.user:
             SubscribeList.objects.update_or_create(mem = obj_mem, group = obj_group)
-    SubscribeList.objects.update_or_create(mem = obj_mem, group = UserGroup.objects.get(group_name = 'all', user = request.user))        
+    SubscribeList.objects.update_or_create(mem = obj_mem, group = UserGroup.objects.get_or_create(group_name = 'all', user = request.user)[0])        
     return JsonResponse({'result': 'success'})
 
 
@@ -126,7 +126,7 @@ def mem_move(request):
     obj_mid = request.POST.get('mid')    #需要移动的对象，以mid传递
     obj_mem = SubscribeMember.objects.get(mid = obj_mid)
     new_group = request.POST.getlist('gid')
-    new_group.append(str(UserGroup.objects.get(group_name = 'all', user = request.user).gid))
+    new_group.append(str(UserGroup.objects.get_or_create(group_name = 'all', user = request.user)[0].gid))
     cur_group = list(SubscribeList.objects.filter(group__user = request.user, mem = obj_mem).values_list('group__gid',flat=True))
     cur_group = list(map(str, cur_group))
     gid_add = list(set(new_group).difference(set(cur_group)))
