@@ -1,10 +1,10 @@
-import requests
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.http.response import JsonResponse
 
 from account.models import Userinfo
 from subscribe.models import SubscribeList, UserGroup, SubscribeMember
+from biliapi.tasks import search_user_name, user_profile, user_stat, get_data_if_valid
 
 
 @login_required
@@ -28,7 +28,7 @@ def search(request):
     name = request.GET.get('search_name')
     search_result = []
     try:
-        for result in search_user_name(name).json()["data"]["result"]:
+        for result in search_user_name.delay(name).get()["data"]["result"]:
             search_result.append({
                 "search_result_mid": result["mid"],
                 "search_result_name": result["uname"],
@@ -140,33 +140,16 @@ def mem_move(request):
 
 def add_new_member(Memmid):
     # 成功添加up主到up主数据库则返回True，否则返回False
-    search_result = search_user_id(Memmid).json()["data"]["result"]
+    profile, msg = get_data_if_valid(user_profile.delay(Memmid).get())
+    stat, s_msg = get_data_if_valid(user_stat.delay(Memmid).get())
+    if profile is None or stat is None:
+        return False
+
     # 判断添加的用户是否符合添加条件
-    for result in search_result:
-        if result["result_type"] == 'user' and len(result["data"]) == 1:
-            object_member = result["data"][0]
-            if object_member["fans"] > 1000 and object_member["is_upuser"] == 1:
-                SubscribeMember.objects.update_or_create(mid=Memmid, name=object_member["uname"],
-                                                         face=object_member["upic"])
-                return True
-            else:
-                return False
+    if stat["follower"] > 1000:
+        SubscribeMember.objects.update_or_create(mid=Memmid, name=profile["name"],
+                                                 face=profile["face"])
+        return True
+    else:
+        return False
 
-
-def search_user_name(name):
-    rsp = requests.get("http://api.bilibili.com/x/web-interface/search/type",
-                       params={
-                           "search_type": "bili_user",
-                           "keyword": name
-                       },
-                       timeout=2)
-    return rsp
-
-
-def search_user_id(mid):
-    rsp = requests.get("http://api.bilibili.com/x/web-interface/search/all/v2",
-                       params={
-                           "keyword": f'uid:{mid}'
-                       },
-                       timeout=2)
-    return rsp

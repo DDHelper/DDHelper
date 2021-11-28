@@ -12,3 +12,7 @@ class ApiTest(TestCase):
         self.assertEqual(dynamic_history['code'], 0)
         self.assertEqual(dynamic_history['data']['cards'][0]['desc']['uid'], 8401607)
         self.assertEqual(dynamic_history['data']['cards'][0]['desc']['dynamic_id'], 574365641487852129)
+
+        search_result = tasks.search_user_name.delay('无米酱Official').get()
+        self.assertEqual(search_result['code'], 0)
+        self.assertEqual(search_result['data']['result'][0]['uname'], '无米酱Official')
