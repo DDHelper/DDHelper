@@ -1,0 +1,1 @@
+celery -A DDHelper worker -Q dynamic -l info -P solo -E -n w%1@%h
