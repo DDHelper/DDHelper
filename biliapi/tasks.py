@@ -15,6 +15,7 @@ logger: logging.Logger = get_task_logger(__name__)
 # 默认每次请求后的等待时间（秒）
 # 推荐每台机器最多两个worker
 DEFAULT_WAIT = 1.5 if not settings.TESTING else 0.1
+DEFAULT_TIMEOUT = 10
 
 BLOCKED = False
 BLOCKED_START_TIME = None
@@ -138,7 +139,7 @@ def space_history(host_uid: int, offset_dynamic_id: int):
             "offset_dynamic_id": offset_dynamic_id
         },
         headers=headers,
-        timeout=2,
+        timeout=DEFAULT_TIMEOUT,
         proxies=get_random_proxy()
     )
     check_response(rsp)
@@ -165,7 +166,7 @@ def user_profile(mid: int):
             "jsonp": "jsonp"
         },
         headers=headers,
-        timeout=2,
+        timeout=DEFAULT_TIMEOUT,
         proxies=get_random_proxy()
     )
     check_response(rsp)
@@ -191,7 +192,7 @@ def user_stat(mid: int):
             "jsonp": "jsonp"
         },
         headers=headers,
-        timeout=2)
+        timeout=DEFAULT_TIMEOUT)
     check_response(rsp)
     if rsp.status_code != 200:
         return None
@@ -214,7 +215,7 @@ def search_user_name(name: str):
                            "search_type": "bili_user",
                            "keyword": name
                        },
-                       timeout=2)
+                       timeout=DEFAULT_TIMEOUT)
     check_response(rsp)
     if rsp.status_code != 200:
         return None
@@ -237,7 +238,7 @@ def search_user_id(mid: int):
                            "search_type": "bili_user",
                            "keyword": f'uid:{mid}'
                        },
-                       timeout=2)
+                       timeout=DEFAULT_TIMEOUT)
     check_response(rsp)
     if rsp.status_code != 200:
         return None
