@@ -3,7 +3,6 @@ import time
 
 import django.contrib.auth as auth
 from django.core.exceptions import BadRequest
-from django.db import IntegrityError
 from django.http import JsonResponse
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
@@ -50,7 +49,7 @@ def login(request):
         return JsonResponse({
             'code': 200,
             'data': {
-                'username': user.usernama,
+                'username': user.username,
                 'uid': user.uid
             }
         })
@@ -112,7 +111,7 @@ def register(request):
             'code': 400,
             'msg': '用户名或邮箱已被占用'
         }, status=400)
-    
+
     user = Userinfo.objects.create_user(
         username=username,
         password=password,
