@@ -17,6 +17,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Set up MySQL
+      run: |
+        sudo /etc/init.d/mysql start
+        mysql -e 'CREATE DATABASE test_db;'
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
@@ -27,11 +31,11 @@ jobs:
         pip install -r requirements.txt
     - name: Run Tests
       env:
-        MYSQL_NAME: ${{ secrets.MYSQL_NAME }}
-        MYSQL_USER: ${{ secrets.MYSQL_USER }}
-        MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-        MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-        MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
+        MYSQL_NAME: test_db
+        MYSQL_USER: root
+        MYSQL_PASSWORD: ''
+        MYSQL_HOST: localhost
+        MYSQL_PORT: 3306
       run: |
         python manage.py test
       
