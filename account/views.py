@@ -57,7 +57,7 @@ def login(request):
         return JsonResponse({
             'code': 403,
             'msg': "用户名或密码错误"
-        })
+        }, status=403)
 
 
 @csrf_exempt
@@ -212,6 +212,7 @@ def verify_pin(request):
     返回数据
     名称	     类型	是否必须	默认值	备注	其他信息
     code	integer	必须
+    match   bool    必须
     msg	    string	非必须
 
     验证一个账号的注册邮箱。
@@ -230,7 +231,10 @@ def verify_pin(request):
                 'code': 400,
                 'msg': "验证码超时"
             }, status=400)
-        return check_pin(request, email=email, pin=pin)
+        return JsonResponse({
+            'code': 200,
+            'match': check_pin(request, email=email, pin=pin)
+        })
     except KeyError:
         return JsonResponse({
             'code': 400,
