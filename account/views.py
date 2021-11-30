@@ -1,10 +1,18 @@
 import random
+import time
 
-from django.contrib.auth import authenticate
+import django.contrib.auth as auth
+from django.db import IntegrityError
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from account.models import Userinfo
+
+REGISTER_PIN = 'REGISTER_PIN'
+REGISTER_EMAIL = 'REGISTER_EMAIL'
+REGISTER_SEND_PIN_TIME = 'REGISTER_SEND_PIN_TIME'
+REGISTER_PIN_VERIFY_RETIES = 'REGISTER_PIN_VERIFY_RETIES'
+REGISTER_PIN_VERIFY_MAX_RETIES = 10
 
 
 @csrf_exempt
@@ -27,26 +35,22 @@ def login(request):
     如果登录成功，返回用户信息，通过Set-Cookies返回认证信息
     如果登录失败，code设置为403，不返回data
     """
-    user = authenticate(username=request.POST.get('username'),
-                        password=request.POST.get('password'))
-
+    user = auth.authenticate(username=request.POST.get('username'),
+                             password=request.POST.get('password'))
     if user is not None:
-        response_ = JsonResponse({
+        auth.login(request, user)
+        return JsonResponse({
             'code': 200,
             'data': {
-                'uid': user.__str__()
+                'username': user.usernama,
+                'uid': user.uid
             }
         })
-        response_.set_cookie('name',
-                             request.POST.get('username'),
-                             max_age=3600)
     else:
-        response_ = JsonResponse({
+        return JsonResponse({
             'code': 403,
-            'msg': "user not existed or wrong password"
+            'msg': "用户名或密码错误"
         })
-        response_.status_code = 403
-    return response_
 
 
 @csrf_exempt
@@ -57,7 +61,8 @@ def register(request):
     参数名称	    参数类型	是否必须	示例	       备注
     username	T文本	是	    user_abcd
     password	T文本	是	    123456abcd
-    pin       T文本	是	    3242
+    email       T文本    是      123546@sss.com
+    pin         T文本	是	    3242
 
     返回数据
     名称	     类型	是否必须	默认值	备注	其他信息
@@ -65,33 +70,43 @@ def register(request):
     msg	    string	非必须
 
     注册一个账号。
-    如果填写成功，发送pin
     如果失败，code设置为403，msg为失败的原因
     """
-    try:
-        request.session['username'] = request.POST.get('username')
-        request.session['password'] = request.POST.get('password')
-        request.session['email'] = request.POST.get('email')
-        request.session['uid'] = request.POST.get('uid')
+    username = request.POST.get('username')
+    password = request.POST.get('password')
+    email = request.POST.get('email')
+    pin = request.POST.get('pin')
 
+    try:
+        if check_pin_timeout(request):
+            return JsonResponse({
+                'code': 400,
+                'msg': '验证码已超时'
+            }, status=400)
+        if check_pin(request, email=email, pin=pin):
+            return JsonResponse({
+                'code': 400,
+                'msg': '验证码或邮箱不正确'
+            }, status=400)
+    except KeyError:
+        return JsonResponse({
+            'code': 400,
+            'msg': '请先获取验证码'
+        }, status=400)
+
+    try:
         user = Userinfo.objects.create_user(
-            username=request.session['username'],
-            password=request.session['password'],
-            email=request.session['email'],
-            uid=request.session['uid']
+            username=username,
+            password=password,
+            email=email
         )
         user.save()
-
-    except Exception as error:
-        response_ = JsonResponse({
-            'code': 403,
-            'msg': error.__str__()
-        })
-        response_.status_code = 403
-        return response_
-    else:
-
-        return JsonResponse({'code': 200})
+    except IntegrityError:
+        return JsonResponse({
+            'code': 400,
+            'msg': '用户名或邮箱已被占用'
+        }, status=400)
+    return JsonResponse({'code': 200, 'msg': ''})
 
 
 @csrf_exempt
@@ -112,24 +127,63 @@ def send_pin(request):
     如果失败，code设置为403，msg为失败的原因
     """
     try:
+        if not check_pin_timeout(request):
+            return JsonResponse({
+                'code': 400,
+                'msg': '重新发送验证码前请等待60秒'
+            }, status=400)
+    except KeyError:
+        pass
 
-        request.session.set_expiry(0)
-        pin = random.randint(999, 9999)
-        request.session['pin'] = pin
-        email = request.POST.get('email')
-        # TODO:
-        # send_pin(email, pin)
+    email = request.POST.get('email')
+    pin = random.randint(100000, 999999)
+    request.session[REGISTER_SEND_PIN_TIME] = time.time()
+    request.session[REGISTER_EMAIL] = email
+    request.session[REGISTER_PIN] = pin
+    request.session[REGISTER_PIN_VERIFY_RETIES] = 0
+    # TODO 将验证码发送到邮箱中
+    return JsonResponse({'code': 200, 'msg': ''})
 
-    except Exception as error:
-        response_ = JsonResponse({
-            'code': 403,
-            'msg': error.__str__()
-        })
-        response_.status_code = 403
-        return response_
-    else:
 
-        return JsonResponse({'code': 200})
+def check_pin_timeout(request):
+    """
+    检查验证码是否超时，超时后删除验证码信息
+    :param request:
+    :return:
+    """
+    timeout = (time.time() - request.session[REGISTER_SEND_PIN_TIME]) > 60
+    if timeout:
+        clear_pin_info(request)
+    return timeout
+
+
+def check_pin(request, email, pin):
+    """
+    检查一个请求的验证码状态，并增加一次尝试计数。
+    超过最大尝试时返回False
+    :param request:
+    :param email:
+    :param pin:
+    :return:
+    """
+    request.session[REGISTER_PIN_VERIFY_RETIES] += 1
+    if request.session[REGISTER_PIN_VERIFY_RETIES] >= REGISTER_PIN_VERIFY_MAX_RETIES:
+        return False
+    if email != request.session[REGISTER_EMAIL] or pin != request.session[REGISTER_PIN]:
+        return False
+    return True
+
+
+def clear_pin_info(request):
+    """
+    清除注册用的验证码相关信息
+    :param request:
+    :return:
+    """
+    del request.session[REGISTER_PIN]
+    del request.session[REGISTER_EMAIL]
+    del request.session[REGISTER_SEND_PIN_TIME]
+    del request.session[REGISTER_PIN_VERIFY_RETIES]
 
 
 @csrf_exempt
@@ -138,8 +192,8 @@ def verify_pin(request):
     请求参数
     Body:
     参数名称	    参数类型	是否必须	示例	       备注
-    pin	T文本	是	    1947
-    
+    pin      	T文本	是	    1947
+    email       T文本	是	    12354@aaa.com
 
     返回数据
     名称	     类型	是否必须	默认值	备注	其他信息
@@ -151,20 +205,14 @@ def verify_pin(request):
     如果验证失败，code设置为403，msg为失败的原因
     """
     try:
-        entered_pin = request.POST.get('pin')
-        pin = request.session.get('pin', 'N/A')
-        if pin == 'N/A':
-            raise Exception('Verification PIN not found!')
-        if entered_pin == pin:  # if verification success
-            return JsonResponse({'code': 200})
-        else:
-            raise Exception('Verification PIN not match!')
-    except Exception as error:
-        response_ = JsonResponse({
-            'code': 403,
-            'msg': error.__str__()
-        })
-        response_.status_code = 403
-        return response_
-    # else:
-    #     return JsonResponse({'code': 200})
+        if check_pin_timeout(request):
+            return JsonResponse({
+                'code': 400,
+                'msg': "验证码超时"
+            }, status=400)
+        return check_pin(request, email=request.GET.get('email'), pin=request.GET.get('pin'))
+    except KeyError:
+        return JsonResponse({
+            'code': 400,
+            'msg': '未获取验证码'
+        }, status=400)
