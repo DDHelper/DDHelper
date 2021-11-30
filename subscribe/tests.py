@@ -31,11 +31,11 @@ class ListManageTestCase(TestCase):  # 检测列表管理功能
         self.user2 = Userinfo.objects.create_user(
             username='test_user2',
             password='12345678',
-            email='test@test.test')
+            email='test2@test.test')
         self.user3 = Userinfo.objects.create_user(
             username='test_user3',
             password='12345678',
-            email='test@test.test')
+            email='test3@test.test')
         self.c = Client()
         self.c.login(username='test_user', password='12345678')
         self.mem1 = SubscribeMember.objects.create(
