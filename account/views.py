@@ -68,7 +68,7 @@ def user_info(request):
     return JsonResponse({
         "code": 200,
         "data": {
-            "username": user.usernama,
+            "username": user.username,
             "uid": user.uid,
             "email": user.email
         }
