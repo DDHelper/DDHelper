@@ -83,8 +83,8 @@ def register(request):
         username = request.POST['username']
         password = request.POST['password']
         email = request.POST['email']
-        pin = request.POST['pin']
-    except KeyError:
+        pin = int(request.POST['pin'])
+    except KeyError or ValueError:
         raise BadRequest()
 
     try:
@@ -221,8 +221,8 @@ def verify_pin(request):
     """
     try:
         email = request.GET['email']
-        pin = request.GET['pin']
-    except KeyError:
+        pin = int(request.GET['pin'])
+    except KeyError or ValueError:
         raise BadRequest()
 
     try:
