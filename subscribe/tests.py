@@ -12,7 +12,8 @@ class SearchTestCase(TestCase):  # 检测搜索功能是否可以使用
     def setUp(self):
         Userinfo.objects.create_user(
             username='test_user',
-            password='12345678')
+            password='12345678',
+            email='test@test.test')
         self.c = Client()
         self.c.login(username='test_user', password='12345678')
 
@@ -25,13 +26,16 @@ class ListManageTestCase(TestCase):  # 检测列表管理功能
     def setUp(self):
         self.user1 = Userinfo.objects.create_user(
             username='test_user',
-            password='12345678')
+            password='12345678',
+            email='test@test.test')
         self.user2 = Userinfo.objects.create_user(
             username='test_user2',
-            password='12345678')
+            password='12345678',
+            email='test@test.test')
         self.user3 = Userinfo.objects.create_user(
             username='test_user3',
-            password='12345678')
+            password='12345678',
+            email='test@test.test')
         self.c = Client()
         self.c.login(username='test_user', password='12345678')
         self.mem1 = SubscribeMember.objects.create(
