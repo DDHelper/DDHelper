@@ -1,11 +1,10 @@
-from django.shortcuts import render
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
-from django.contrib.auth import authenticate
-from django.views.decorators.csrf import csrf_exempt
-from account.models import Userinfo
-from django.urls import reverse
-
 import random
+
+from django.contrib.auth import authenticate
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+from account.models import Userinfo
 
 
 @csrf_exempt
@@ -76,13 +75,13 @@ def register(request):
         request.session['uid'] = request.POST.get('uid')
 
         user = Userinfo.objects.create_user(
-                username=request.session['username'],
-                password=request.session['password'],
-                email = request.session['email'],
-                uid=request.session['uid']
-                )
+            username=request.session['username'],
+            password=request.session['password'],
+            email=request.session['email'],
+            uid=request.session['uid']
+        )
         user.save()
-        
+
     except Exception as error:
         response_ = JsonResponse({
             'code': 403,
@@ -91,7 +90,7 @@ def register(request):
         response_.status_code = 403
         return response_
     else:
-        
+
         return JsonResponse({'code': 200})
 
 
@@ -120,7 +119,7 @@ def send_pin(request):
         email = request.POST.get('email')
         # TODO:
         # send_pin(email, pin)
-        
+
     except Exception as error:
         response_ = JsonResponse({
             'code': 403,
@@ -129,7 +128,7 @@ def send_pin(request):
         response_.status_code = 403
         return response_
     else:
-        
+
         return JsonResponse({'code': 200})
 
 
@@ -156,7 +155,7 @@ def verify_pin(request):
         pin = request.session.get('pin', 'N/A')
         if pin == 'N/A':
             raise Exception('Verification PIN not found!')
-        if entered_pin == pin: #if verification success
+        if entered_pin == pin:  # if verification success
             return JsonResponse({'code': 200})
         else:
             raise Exception('Verification PIN not match!')
@@ -168,4 +167,4 @@ def verify_pin(request):
         response_.status_code = 403
         return response_
     # else:
-    #     return JsonResponse({'code': 200})   
+    #     return JsonResponse({'code': 200})
