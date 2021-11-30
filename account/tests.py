@@ -1,5 +1,6 @@
 from django.test import TestCase
 from . import views
+from . import models
 
 # Create your tests here.
 
@@ -80,7 +81,6 @@ class RegisterTest(TestCase):
                 "email": "test@test.test",
             })
         self.assertEqual(response.status_code, 200)
-        print(self.client.session[views.REGISTER_PIN])
 
         response = self.client.post(
             "/account/register/",
@@ -92,3 +92,67 @@ class RegisterTest(TestCase):
             })
         self.assertEqual(response.status_code, 400)
         self.assertDictEqual(response.json(), {'code': 400, "msg": "用户名或邮箱已被占用"})
+
+
+class LoginTest(TestCase):
+    def setUp(self):
+        response = self.client.post(
+            "/account/send_pin/",
+            {
+                "email": "test@test.test",
+            })
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.post(
+            "/account/register/",
+            {
+                "username": "test_account",
+                "password": "123456",
+                "email": "test@test.test",
+                "pin": self.client.session[views.REGISTER_PIN]
+            })
+        self.assertEqual(response.status_code, 200)
+
+    def test_login(self):
+        response = self.client.post(
+            "/account/login/",
+            {
+                "username": "test_account",
+                "password": "asda",
+            })
+        self.assertEqual(response.status_code, 403)
+        self.assertDictEqual(response.json(), {'code': 403, 'msg': "用户名或密码错误"})
+
+        response = self.client.post(
+            "/account/login/",
+            {
+                "username": "test_account",
+                "password": "123456",
+            })
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(
+            response.json(),
+            {
+                'code': 200,
+                'data': {
+                    'username': 'test_account',
+                    'uid': models.Userinfo.objects.get(username='test_account').uid
+                }
+            }
+        )
+
+        response = self.client.get("/account/user_info/")
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(
+            response.json(),
+            {
+                'code': 200,
+                'data': {
+                    'username': 'test_account',
+                    'uid': models.Userinfo.objects.get(username='test_account').uid,
+                    'email': 'test@test.test'
+                }
+            }
+        )
+
+
