@@ -93,7 +93,7 @@ def register(request):
                 'code': 400,
                 'msg': '验证码已超时'
             }, status=400)
-        if check_pin(request, email=email, pin=pin):
+        if not check_pin(request, email=email, pin=pin):
             return JsonResponse({
                 'code': 400,
                 'msg': '验证码或邮箱不正确'
