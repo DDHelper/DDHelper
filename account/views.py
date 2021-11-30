@@ -104,6 +104,7 @@ def register(request):
             'msg': '请先获取验证码'
         }, status=400)
 
+    clear_pin_info(request)
     try:
         user = Userinfo.objects.create_user(
             username=username,
