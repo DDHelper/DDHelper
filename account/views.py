@@ -2,6 +2,7 @@ import random
 import time
 
 import django.contrib.auth as auth
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import BadRequest
 from django.http import JsonResponse
 from django.db.models import Q
@@ -58,6 +59,20 @@ def login(request):
             'code': 403,
             'msg': "用户名或密码错误"
         }, status=403)
+
+
+@login_required
+@csrf_exempt
+def user_info(request):
+    user = request.user
+    return JsonResponse({
+        "code": 200,
+        "data": {
+            "username": user.usernama,
+            "uid": user.uid,
+            "email": user.email
+        }
+    })
 
 
 @csrf_exempt
