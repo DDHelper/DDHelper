@@ -2,6 +2,7 @@ import random
 import time
 
 import django.contrib.auth as auth
+from django.core.exceptions import BadRequest
 from django.db import IntegrityError
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -35,8 +36,14 @@ def login(request):
     如果登录成功，返回用户信息，通过Set-Cookies返回认证信息
     如果登录失败，code设置为403，不返回data
     """
-    user = auth.authenticate(username=request.POST.get('username'),
-                             password=request.POST.get('password'))
+    try:
+        username = request.POST['username']
+        password = request.POST['password']
+    except KeyError:
+        raise BadRequest
+
+    user = auth.authenticate(username=username,
+                             password=password)
     if user is not None:
         auth.login(request, user)
         return JsonResponse({
@@ -72,10 +79,13 @@ def register(request):
     注册一个账号。
     如果失败，code设置为403，msg为失败的原因
     """
-    username = request.POST.get('username')
-    password = request.POST.get('password')
-    email = request.POST.get('email')
-    pin = request.POST.get('pin')
+    try:
+        username = request.POST['username']
+        password = request.POST['password']
+        email = request.POST['email']
+        pin = request.POST['pin']
+    except KeyError:
+        raise BadRequest()
 
     try:
         if check_pin_timeout(request):
@@ -135,7 +145,11 @@ def send_pin(request):
     except KeyError:
         pass
 
-    email = request.POST.get('email')
+    try:
+        email = request.POST['email']
+    except KeyError:
+        raise BadRequest()
+
     pin = random.randint(100000, 999999)
     request.session[REGISTER_SEND_PIN_TIME] = time.time()
     request.session[REGISTER_EMAIL] = email
@@ -205,12 +219,18 @@ def verify_pin(request):
     如果验证失败，code设置为403，msg为失败的原因
     """
     try:
+        email = request.GET['email']
+        pin = request.GET['pin']
+    except KeyError:
+        raise BadRequest()
+
+    try:
         if check_pin_timeout(request):
             return JsonResponse({
                 'code': 400,
                 'msg': "验证码超时"
             }, status=400)
-        return check_pin(request, email=request.GET.get('email'), pin=request.GET.get('pin'))
+        return check_pin(request, email=email, pin=pin)
     except KeyError:
         return JsonResponse({
             'code': 400,
