@@ -4,3 +4,4 @@ celery>=5.1.2
 sqlalchemy>=1.4.26
 django-celery-beat>=2.2.1
 django_celery_results>=2.2.0
+mysqlclient>=2.1.0
