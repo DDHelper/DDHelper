@@ -133,12 +133,12 @@ def update_group(request):
                 return JsonResponse({
                     'code': 403,
                     'msg': "默认分组无法改名"
-                })
+                }, status=403)
             if MemberGroup.objects.filter(aid=request.user.uid, group_name=group_name).exists():
                 return JsonResponse({
                     'code': 400,
                     'msg': "分组名重复"
-                })
+                }, status=400)
             group.group_name = group_name
             group.save()
             return JsonResponse({
