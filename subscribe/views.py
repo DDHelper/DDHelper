@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, BadRequest
 from django.http.response import JsonResponse
+from django.views.decorators.http import require_http_methods
 
 from subscribe import models
 from subscribe.models import MemberGroup, SubscribeMember
@@ -143,6 +144,31 @@ def update_group(request):
             return JsonResponse({
                 'code': 200,
             })
+    else:
+        return JsonResponse({
+            'code': 404,
+            'msg': "分组不存在"
+        }, status=404)
+
+
+@require_http_methods(['DELETE'])
+@login_required
+def delete_group(request):
+    try:
+        gid = int(request.POST['gid'])
+    except KeyError or ValueError:
+        raise BadRequest()
+    group = MemberGroup.get_group(aid=request.user.uid, gid=gid)
+    if group is not None:
+        if group.group_name == models.DEFAULT_GROUP_NAME:
+            return JsonResponse({
+                'code': 403,
+                'msg': "默认分组无法被删除"
+            })
+        group.delete()
+        return JsonResponse({
+            'code': 200
+        })
     else:
         return JsonResponse({
             'code': 404,
