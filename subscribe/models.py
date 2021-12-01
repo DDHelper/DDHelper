@@ -52,7 +52,7 @@ class MemberGroup(models.Model):
     @classmethod
     def get_group(cls, aid, gid):
         if gid == 0:
-            return MemberGroup.get_or_create_default_group(aid=aid)
+            return MemberGroup.get_or_create_default_group(aid=aid)[0]
         else:
             return MemberGroup.objects.filter(Q(user=aid) & Q(gid=gid)).first()
 
