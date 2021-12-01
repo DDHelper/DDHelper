@@ -4,10 +4,12 @@ import time
 import django.contrib.auth as auth
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import BadRequest
+from django.core.mail import send_mail
 from django.http import JsonResponse
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
 
+from DDHelper import settings
 from account.models import Userinfo
 
 REGISTER_PIN = 'REGISTER_PIN'
@@ -173,7 +175,13 @@ def send_pin(request):
     request.session[REGISTER_EMAIL] = email
     request.session[REGISTER_PIN] = pin
     request.session[REGISTER_PIN_VERIFY_RETIES] = 0
-    # TODO 将验证码发送到邮箱中
+    send_mail(
+        'DDHelper注册验证码',
+        f"您用于注册DDHelper账号的验证码为：{pin}",
+        settings.PIN_EMAIL,
+        [email],
+        fail_silently=True,
+    )
     return JsonResponse({'code': 200, 'msg': ''})
 
 
