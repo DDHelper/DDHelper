@@ -1,0 +1,11 @@
+[run]
+branch = True
+source = .
+omit =
+    manage.py
+    DDHelper\settings.py
+    DDHelper\wsgi.py
+    DDHelper\asgi.py
+[report]
+show_missing = True
+skip_covered = True
