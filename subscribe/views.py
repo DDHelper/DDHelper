@@ -126,11 +126,15 @@ def add_group(request):
         group_name = request.POST['group_name']
     except KeyError:
         raise BadRequest()
-    _, create = MemberGroup.objects.get_or_create(user_id=request.user.uid,
-                                                  group_name=group_name)
+    group, create = MemberGroup.objects.get_or_create(user_id=request.user.uid,
+                                                      group_name=group_name)
     return JsonResponse({
         'code': 200,
-        'success': create
+        'success': create,
+        'data': {
+            'gid': group.gid,
+            'group_name': group.group_name
+        }
     })
 
 
@@ -164,6 +168,10 @@ def update_group(request):
             group.save()
             return JsonResponse({
                 'code': 200,
+                'data': {
+                    'gid': group.gid,
+                    'group_name': group.group_name
+                }
             })
     else:
         return JsonResponse({
