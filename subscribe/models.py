@@ -75,7 +75,7 @@ class MemberGroup(models.Model):
         :param mid:
         :return:
         """
-        return SubscribeMember.objects.get(mid=mid).group_set.filter(user=aid)
+        return SubscribeMember.objects.get(mid=mid).membergroup_set.filter(user=aid)
 
     @classmethod
     def set_groups_by_account_and_member(cls, aid, mid, groups):
@@ -93,11 +93,11 @@ class MemberGroup(models.Model):
         to_add = new_groups - old_groups
         if len(to_delete) > 0:
             # 从旧分组中移除
-            member.group_set.remove(*to_delete)
+            member.membergroup_set.remove(*to_delete)
         if len(to_add) > 0:
             # 检测新加的分组是不是属于这个用户
-            if MemberGroup.objects.filter(gid__in=to_add).exclude(account=aid).exists():
+            if MemberGroup.objects.filter(gid__in=to_add).exclude(user=aid).exists():
                 # 新加的分组里有不属于这个用户的
                 raise PermissionDenied("无权访问部分分组")
             # 添加进新分组
-            member.group_set.add(*to_add)
+            member.membergroup_set.add(*to_add)
