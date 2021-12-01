@@ -42,4 +42,10 @@ jobs:
     - name: Coverage Report
       run: |
         coverage report
+        coverage html
+    - uses: actions/upload-artifact@v2
+      with:
+        name: coverage-html
+        path: htmlcov/
+
       
