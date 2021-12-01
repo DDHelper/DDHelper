@@ -5,7 +5,7 @@ from django.db.models import Q
 from account.models import Userinfo
 
 
-DEFAULT_GROUP_NAME = "default"
+DEFAULT_GROUP_NAME = "默认分组"
 
 
 # Create your models here.
