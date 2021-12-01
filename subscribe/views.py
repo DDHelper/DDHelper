@@ -74,7 +74,7 @@ def group_members(request):
         raise BadRequest()
     group = MemberGroup.get_group(aid=request.user.uid, gid=gid)
     if group is not None:
-        members = group.first().members.all()
+        members = group.members.all()
         members_count = members.count()
         page_start = page * size
         page_end = page_start + size
