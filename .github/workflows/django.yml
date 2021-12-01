@@ -41,12 +41,8 @@ jobs:
         coverage run --source '.' manage.py test -v 2
     - name: Coverage Report
       run: |
-        coverage report  >> coverage_report.txt
+        coverage report
         coverage html
-    - uses: actions/upload-artifact@v2
-      with:
-        name: coverage-txt
-        path: coverage_report.txt
     - uses: actions/upload-artifact@v2
       with:
         name: coverage-html
