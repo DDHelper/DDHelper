@@ -177,7 +177,7 @@ def delete_group(request):
 
 
 @login_required
-def mem_move(request):
+def member_move(request):
     """
     移动一批成员到另一个分组里
     :param request:
