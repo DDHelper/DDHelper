@@ -125,9 +125,8 @@ def update_group(request):
     except KeyError or ValueError:
         raise BadRequest()
 
-    group = MemberGroup.select_group(aid=request.user.uid, gid=gid)
-    if group.exists():
-        group = group.first()
+    group = MemberGroup.get_group(aid=request.user.uid, gid=gid)
+    if group is not None:
         if group_name:
             if MemberGroup.objects.filter(aid=request.user.uid, group_name=group_name).exists():
                 return JsonResponse({
