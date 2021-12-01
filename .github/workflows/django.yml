@@ -37,5 +37,9 @@ jobs:
         MYSQL_HOST: localhost
         MYSQL_PORT: 3306
       run: |
-        python manage.py test
+        coverage erase
+        coverage run --source '.' manage.py test -v 2
+    - name: Coverage Report
+      run: |
+        coverage report
       
