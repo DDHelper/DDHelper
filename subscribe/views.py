@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, BadRequest
 from django.http.response import JsonResponse
 
-from account.models import Userinfo
+from subscribe import models
 from subscribe.models import MemberGroup, SubscribeMember
 from biliapi.tasks import search_user_name, user_profile, user_stat, get_data_if_valid
 
@@ -128,6 +128,11 @@ def update_group(request):
     group = MemberGroup.get_group(aid=request.user.uid, gid=gid)
     if group is not None:
         if group_name:
+            if group.group_name == models.DEFAULT_GROUP_NAME:
+                return JsonResponse({
+                    'code': 403,
+                    'msg': "默认分组无法改名"
+                })
             if MemberGroup.objects.filter(aid=request.user.uid, group_name=group_name).exists():
                 return JsonResponse({
                     'code': 400,
