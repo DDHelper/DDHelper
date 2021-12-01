@@ -83,6 +83,9 @@ def group_members(request):
             'code': 200,
             'data': {
                 'has_more': page_end < members_count,
+                'gid': group.gid,
+                'group_name': group.group_name,
+                'count': members_count,
                 'page': page,
                 'pages': -(-members_count // size),
                 'data': [member.as_dict() for member in paged]
