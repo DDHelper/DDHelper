@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, BadRequest
+from django.db.models import Count
 from django.http.response import JsonResponse
 from django.views.decorators.http import require_http_methods
 
@@ -41,6 +42,22 @@ def search(request):
     return JsonResponse({
         'code': 200,
         'data': search_result
+    })
+
+
+@login_required
+def group_list(request):
+    groups = MemberGroup.select_groups_by_account(request.user.uid).annotate(Count("members"))
+    return JsonResponse({
+        'code': 200,
+        'data': [
+            {
+                'gid': group.gid,
+                'group_name': group.group_name,
+                'count': group.members__count
+            }
+            for group in groups
+        ]
     })
 
 
