@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, BadRequest
 from django.db.models import Count
+from django.http import QueryDict
 from django.http.response import JsonResponse
 from django.views.decorators.http import require_http_methods
 
@@ -154,7 +155,7 @@ def update_group(request):
                     'code': 403,
                     'msg': "默认分组无法改名"
                 }, status=403)
-            if MemberGroup.objects.filter(aid=request.user.uid, group_name=group_name).exists():
+            if MemberGroup.objects.filter(user=request.user.uid, group_name=group_name).exists():
                 return JsonResponse({
                     'code': 400,
                     'msg': "分组名重复"
@@ -175,7 +176,8 @@ def update_group(request):
 @login_required
 def delete_group(request):
     try:
-        gid = int(request.POST['gid'])
+        body = QueryDict(request.body.decode("utf-8"),encoding="utf-8")
+        gid = int(body['gid'])
     except KeyError or ValueError:
         raise BadRequest()
     group = MemberGroup.get_group(aid=request.user.uid, gid=gid)
