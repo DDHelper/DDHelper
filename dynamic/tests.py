@@ -1,6 +1,8 @@
 from django.test import TestCase
 from django.utils import timezone
 import pytz
+
+from account.models import Userinfo
 from . import models
 from . import dsync
 from . import tasks
@@ -43,6 +45,13 @@ class ModelTest(TestCase):
 
 
 class DsyncTest(TestCase):
+    def setUp(self):
+        Userinfo.objects.create_user(
+            username='test_user',
+            password='12345678',
+            email='test@test.test')
+        self.client.login(username='test_user', password='12345678')
+
     def test_dsync(self):
         member = SubscribeMember(mid=8401607)
         dsync.update_member_profile(member)
@@ -53,16 +62,39 @@ class DsyncTest(TestCase):
 
         self.assertEqual(dsync.get_saved_latest_dynamic(1), None)
 
-    def test_task(self):
-        mid = 8401607
+    def test_raw(self):
+        mid = 416622817
         member = SubscribeMember(mid=mid)
         dsync.update_member_profile(member)
 
         tasks.add_member.delay(mid)
 
         member = dsync.get_subscribe_member(mid)
-        self.assertEqual(member.name, "无米酱Official")
+        self.assertEqual(member.name, "步玎Pudding")
         self.assertNotEqual(dsync.get_saved_latest_dynamic(mid), None)
-        self.assertGreater(len(models.Dynamic.objects.all()), 0)
+        self.assertGreater(models.Dynamic.objects.count(), 0)
 
+    def test_task(self):
+        response = self.client.get("/subscribe/group_list/")
+        default_group = response.json()['data'][0]['gid']
+        response = self.client.post(
+            "/subscribe/subscribe/",
+            {
+                'mid': 416622817,
+                'gid': default_group
+            })
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/dynamic/list/")
+        self.assertEqual(response.status_code, 200)
+        json = response.json()
+        self.assertEqual(json['data']['has_more'], True)
+        self.assertEqual(len(json['data']['data']), 20)
+        offset = json['data']['offset']
+
+        response = self.client.get("/dynamic/list/", {'offset': offset})
+        self.assertEqual(response.status_code, 200)
+        json = response.json()
+        self.assertEqual(json['data']['has_more'], True)
+        self.assertEqual(json['data']['data'][0]['dynamic_id'], offset)
 
