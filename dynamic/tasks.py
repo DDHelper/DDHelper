@@ -5,6 +5,7 @@ from django.db import transaction, DatabaseError
 import logging
 from . import dsync
 from . import models
+from subscribe.models import SubscribeMember
 
 logger: logging.Logger = get_task_logger(__name__)
 
@@ -26,17 +27,22 @@ def call_full_sync(chunk_size=5):
 
 
 @shared_task
-def add_member(mid: int, initial_sync=True):
+def add_member(mid: int, initial_sync=True, create_subscribe_member_in_place=False):
     """
     添加一个需要同步的成员
     :param mid: 成员的id
     :param initial_sync: 是否自动创建初始化同步任务
+    :param create_subscribe_member_in_place: 没找到SubscribeMember时是创建新的还是抛出异常
     :return:
     """
     member = dsync.get_subscribe_member(mid)
     if member is None:
-        logger.warning(f"尝试添加关注系统中不存在的成员: mid={mid}")
-        raise Exception(f"尝试添加关注系统中不存在的成员: mid={mid}")
+        if create_subscribe_member_in_place:
+            member = SubscribeMember(mid=mid)
+            dsync.update_member_profile(member)
+        else:
+            logger.warning(f"尝试添加关注系统中不存在的成员: mid={mid}")
+            raise Exception(f"尝试添加关注系统中不存在的成员: mid={mid}")
     dynamic_member = dsync.get_dynamic_member(mid)
     if dynamic_member is None:
         dynamic_member = models.DynamicMember(mid=member)
