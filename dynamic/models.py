@@ -23,7 +23,18 @@ class Dynamic(models.Model):
     raw = models.JSONField()
 
     @classmethod
-    def select_dynamics_in_group(cls, group):
-        return Dynamic.objects.filter(member__in=group.members.all())
+    def select_dynamics_in_group(cls, group, offset):
+        query = Dynamic.objects.filter(member__in=group.members.all())
+        if offset != 0:
+            query = query.filter(dynamic_id__lte=offset)
+        return query.order_by('-dynamic_id')
 
+    def as_dict(self):
+        return {
+            "dynamic_id": self.dynamic_id,
+            "mid": self.member_id,
+            "dynamic_type": self.dynamic_type,
+            "timestamp": self.timestamp.timestamp(),
+            "raw": self.raw
+        }
 
