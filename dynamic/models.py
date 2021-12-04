@@ -43,7 +43,7 @@ class Dynamic(models.Model):
 
 class SyncTask(models.Model):
     uuid = models.UUIDField(primary_key=True)
-    fail_msg = models.CharField(null=True)
+    fail_msg = models.TextField(null=True)
 
     def __str__(self):
         return str(self.uuid)
@@ -68,6 +68,10 @@ class DynamicSyncInfo(models.Model):
             warnings.warn(f"sid={self.sid} Pending < 0")
             return 0
         return pending
+
+    @property
+    def time_cost(self):
+        return self.sync_update_time - self.sync_start_time
 
     @classmethod
     def get_latest(cls):

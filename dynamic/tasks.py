@@ -156,7 +156,7 @@ def sync_block_success(uuid, sid):
 def sync_block_fail(request, exc, traceback, sid):
     sync_info = models.DynamicSyncInfo.objects.get(sid=sid)
     task = SyncTask.objects.get_or_create(uuid=request.id)[0]
-    task.fail_msg = '{1!r}\n{2!r}'.format(exc, traceback)
+    task.fail_msg = '{0!r}\n{1!r}'.format(exc, traceback)
     task.save()
     sync_info.failed_tasks.add(task)
     sync_info.save()
