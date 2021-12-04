@@ -24,7 +24,7 @@ def list_dynamic(request):
         dynamics = list(dynamics[:size + 1])
         has_more = len(dynamics) >= size + 1
         offset = dynamics[-1].dynamic_id if has_more else 0
-        dynamics = dynamics[0:-2] if has_more else dynamics
+        dynamics = dynamics[0:-1] if has_more else dynamics
         return JsonResponse({
             'code': 200,
             'data': {
