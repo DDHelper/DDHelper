@@ -1,5 +1,6 @@
 from biliapi.tasks import get_data_if_valid, user_profile, space_history
-from .models import Member, Dynamic
+from .models import DynamicMember, Dynamic
+from subscribe.models import SubscribeMember
 from django.utils import timezone
 import warnings
 import pytz
@@ -12,24 +13,38 @@ class DsyncException(Exception):
         super(DsyncException, self).__init__(msg)
 
 
-def get_member(mid: int):
+def get_subscribe_member(mid: int):
     """
     获取一个成员，如果没有添加过则返回None
     :param mid: 成员id
-    :rtype: Member
+    :rtype: SubscribeMember
     :return: 获取到的成员
     """
     try:
-        return Member.objects.get(mid=mid)
-    except Member.DoesNotExist:
+        return SubscribeMember.objects.get(mid=mid)
+    except SubscribeMember.DoesNotExist:
         return None
 
 
-def update_member_profile(member: Member, data=None):
+def get_dynamic_member(mid: int):
+    """
+        获取一个成员，如果没有添加过则返回None
+        :param mid: 成员id
+        :rtype: SubscribeMember
+        :return: 获取到的成员
+        """
+    try:
+        return DynamicMember.objects.get(mid_id=mid)
+    except DynamicMember.DoesNotExist:
+        return None
+
+
+def update_member_profile(member: SubscribeMember, data=None, auto_save=True):
     """
     更新成员的相关信息（不会提交到数据库）
     :param member: 需要更新的成员
     :param data: 用于更新的数据，如果为None则主动从bilibili拉取相关信息来填充
+    :param auto_save: 是否自动保存，默认为true
     :return: 如果成功则返回None，否则返回错误信息
     """
     if data is None:
@@ -40,7 +55,8 @@ def update_member_profile(member: Member, data=None):
         return "mid mismatch"
     member.name = data['name']
     member.face = data['face']
-    member.last_profile_update = timezone.now()
+    if auto_save:
+        member.save()
 
 
 def get_saved_latest_dynamic(member: int):
@@ -55,7 +71,7 @@ def get_saved_latest_dynamic(member: int):
         return None
 
 
-def get_all_dynamic_since(member: Member, dynamic_id, max_count=50, max_time=30):
+def get_all_dynamic_since(member: SubscribeMember, dynamic_id, max_count=50, max_time=30):
     """
     获取这个dynamic_id前的所有动态，按dynamic_id增续排列
     :param member:
@@ -91,7 +107,7 @@ def get_all_dynamic_since(member: Member, dynamic_id, max_count=50, max_time=30)
     return dynamics, None
 
 
-def parse_dynamic_card(card, member: Member = None, set_member=False):
+def parse_dynamic_card(card, member: SubscribeMember = None, set_member=False):
     """
     将一个card解析为一个Dynamic对象
     :param card: 原始json数据
@@ -115,7 +131,7 @@ def parse_dynamic_card(card, member: Member = None, set_member=False):
             dy.member = member
     if set_member:
         if dy.member is None:
-            dy.member = get_member(desc['uid'])
+            dy.member = get_subscribe_member(desc['uid'])
         if dy.member is None:
             return None
     return dy

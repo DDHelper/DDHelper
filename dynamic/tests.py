@@ -1,26 +1,35 @@
 from django.test import TestCase
 from django.utils import timezone
 import pytz
+
+from account.models import Userinfo
 from . import models
 from . import dsync
 from . import tasks
+from .models import DynamicSyncInfo
+
+from subscribe.models import SubscribeMember, MemberGroup
 
 CST_TIME_ZONE = pytz.timezone("Asia/Shanghai")
 
 
 class ModelTest(TestCase):
     def test_model_and_time(self):
-        m = models.Member()
-        m.mid = 1
-        m.name = "t"
-        m.face = "http://aa.www/a.png"
-        m.last_profile_update = timezone.now()
+        sm = SubscribeMember()
+        sm.mid = 1
+        sm.name = "t"
+        sm.face = "http://aa.www/a.png"
+        sm.last_profile_update = timezone.now()
+        sm.save()
+
+        m = models.DynamicMember()
+        m.mid = sm
         m.last_dynamic_update = timezone.now()
         m.save()
 
         d = models.Dynamic()
         d.dynamic_id = 1
-        d.member = m
+        d.member = sm
         d.dynamic_type = 233
         d.timestamp = timezone.datetime.fromtimestamp(1636009208, tz=CST_TIME_ZONE)
         d.raw = {"a": 1}
@@ -37,27 +46,66 @@ class ModelTest(TestCase):
 
 
 class DsyncTest(TestCase):
-    def test_dsync(self):
-        member = models.Member(mid=8401607)
-        dsync.update_member_profile(member)
-        member.save()
+    def setUp(self):
+        Userinfo.objects.create_user(
+            username='test_user',
+            password='12345678',
+            email='test@test.test')
+        self.client.login(username='test_user', password='12345678')
 
-        member = dsync.get_member(8401607)
+    def test_dsync(self):
+        member = SubscribeMember(mid=8401607)
+        dsync.update_member_profile(member)
+
+        member = dsync.get_subscribe_member(8401607)
         self.assertEqual(member.name, "无米酱Official")
-        self.assertEqual(dsync.get_member(1), None)
+        self.assertEqual(dsync.get_subscribe_member(1), None)
 
         self.assertEqual(dsync.get_saved_latest_dynamic(1), None)
 
-    def test_task(self):
-        mid = 8401607
-        tasks.add_member(mid, initial_sync=False)  # 直接调用celery task时与一般的函数调用行为相同
+    def test_raw(self):
+        mid = 416622817
+        member = SubscribeMember(mid=mid)
+        dsync.update_member_profile(member)
 
-        member = dsync.get_member(mid)
-        self.assertEqual(member.name, "无米酱Official")
+        tasks.add_member.delay(mid)
 
-        self.assertEqual(dsync.get_saved_latest_dynamic(mid), None)
-        tasks.sync_member(member.mid)
+        member = dsync.get_subscribe_member(mid)
+        self.assertEqual(member.name, "步玎Pudding")
         self.assertNotEqual(dsync.get_saved_latest_dynamic(mid), None)
-        self.assertGreater(len(models.Dynamic.objects.all()), 0)
+        self.assertGreater(models.Dynamic.objects.count(), 0)
+
+    def test_task(self):
+        response = self.client.get("/subscribe/group_list/")
+        default_group = response.json()['data'][0]['gid']
+        response = self.client.post(
+            "/subscribe/subscribe/",
+            {
+                'mid': 416622817,
+                'gid': default_group
+            })
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/dynamic/list/")
+        self.assertEqual(response.status_code, 200)
+        json = response.json()
+        self.assertEqual(json['data']['has_more'], True)
+        self.assertEqual(len(json['data']['data']), 20)
+        offset = json['data']['offset']
+
+        response = self.client.get("/dynamic/list/", {'offset': offset})
+        self.assertEqual(response.status_code, 200)
+        json = response.json()
+        self.assertEqual(json['data']['has_more'], True)
+        self.assertEqual(json['data']['data'][0]['dynamic_id'], offset)
+
+        tasks.call_full_sync()
+
+        sync_info = DynamicSyncInfo.get_latest()
+        self.assertNotEqual(sync_info, None)
+        self.assertEqual(sync_info.finish(), True)
+        self.assertEqual(sync_info.total_tasks.count(), 1)
+        self.assertEqual(sync_info.success_tasks.count(), 1)
+
 
 

@@ -29,4 +29,4 @@ def import_test_members():
             1887889855, 1910896691, 1963824899, 1970372013, 2007781080, 2072586344, 2076245548, 2078936111, 2128809385]
     print(f"Total: {len(mids)}")
     for mid in mids:
-        add_member.delay(mid)
+        add_member.delay(mid, create_subscribe_member_in_place=True)

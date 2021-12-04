@@ -7,6 +7,7 @@ from django.views.decorators.http import require_http_methods
 
 from subscribe import models
 from subscribe.models import MemberGroup, SubscribeMember
+from dynamic import tasks as dynamic_task
 from biliapi.tasks import search_user_name, user_profile, user_stat, get_data_if_valid
 
 
@@ -245,8 +246,10 @@ def add_new_member(mid):
 
     # 判断添加的用户是否符合添加条件
     if stat["follower"] > 1000:
-        member, _ = SubscribeMember.objects.update_or_create(mid=mid, name=profile["name"],
+        member, create = SubscribeMember.objects.update_or_create(mid=mid, name=profile["name"],
                                                               face=profile["face"])
+        if create:
+            dynamic_task.add_member.delay(mid)
         return member is not None
     else:
         return False
