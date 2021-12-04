@@ -24,7 +24,7 @@ class Dynamic(models.Model):
 
     @classmethod
     def select_dynamics_in_group(cls, group, offset):
-        query = Dynamic.objects.filter(member__in=group.members.all())
+        query = Dynamic.objects.filter(member__in=list(group.members.all().values_list('mid', flat=True)))
         if offset != 0:
             query = query.filter(dynamic_id__lte=offset)
         return query.order_by('-dynamic_id')
