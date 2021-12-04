@@ -6,6 +6,7 @@ from account.models import Userinfo
 from . import models
 from . import dsync
 from . import tasks
+from .models import DynamicSyncInfo
 
 from subscribe.models import SubscribeMember, MemberGroup
 
@@ -97,4 +98,14 @@ class DsyncTest(TestCase):
         json = response.json()
         self.assertEqual(json['data']['has_more'], True)
         self.assertEqual(json['data']['data'][0]['dynamic_id'], offset)
+
+        tasks.call_full_sync()
+
+        sync_info = DynamicSyncInfo.get_latest()
+        self.assertNotEqual(sync_info, None)
+        self.assertEqual(sync_info.finish(), True)
+        self.assertEqual(sync_info.total_tasks.count(), 1)
+        self.assertEqual(sync_info.success_tasks.count(), 1)
+
+
 

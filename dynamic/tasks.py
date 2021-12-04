@@ -2,9 +2,11 @@ from celery import shared_task, chord
 from celery.utils.log import get_task_logger
 from django.utils import timezone
 from django.db import transaction, DatabaseError
+from django.db.models import F
 import logging
 from . import dsync
 from . import models
+from .models import SyncTask
 from subscribe.models import SubscribeMember
 
 logger: logging.Logger = get_task_logger(__name__)
@@ -19,11 +21,37 @@ def call_full_sync(chunk_size=5):
     :param chunk_size: 每一块请求的成员数量
     :return:
     """
-    # TODO: 加锁，防止重复发送
-    all_mid = list(models.DynamicMember.objects.values_list("mid_id", flat=True))
-    chunked = sync_member.chunks(zip(all_mid), chunk_size).group()
-    chunked.apply_async()
-    logger.info(f"执行全动态同步，发出{len(chunked)}个任务")
+    sync_info = models.DynamicSyncInfo.get_latest()
+    should_update = False
+    if sync_info is None:
+        should_update = True
+    else:
+        if sync_info.finish():
+            # 之前的任务已经完成了
+            should_update = True
+        elif sync_info.sync_start_time.timestamp() - timezone.now().timestamp() > 7200:
+            # 之前的任务已经超过两小时了
+            should_update = True
+    if should_update:
+        sync_info = models.DynamicSyncInfo.objects.create()
+
+        all_mid = list(models.DynamicMember.objects.values_list("mid_id", flat=True))
+        full_block = len(all_mid) // chunk_size
+        half_block = len(all_mid) % chunk_size
+        blocks = [all_mid[i * chunk_size:(i + 1) * chunk_size] for i in range(full_block)]
+        if half_block != 0:
+            blocks.append(all_mid[full_block * chunk_size:])
+
+        sync_info.save()
+
+        tasks = []
+        for block in blocks:
+            result = sync_block.s(block).apply_async(
+                link=sync_block_success.s(sync_info.sid),
+                link_error=sync_block_fail.s(sync_info.sid))
+            sync_info.total_tasks.add(SyncTask.objects.get_or_create(uuid=result.id)[0])
+        sync_info.save()
+        logger.info(f"执行全动态同步，发出{len(tasks)}个任务")
 
 
 @shared_task
@@ -96,4 +124,34 @@ def sync_member(mid: int, min_interval=600, force_update=False):
         # 更新失败
         logger.warning(f"更新数据库失败: mid={mid} msg={str(e)}")
         raise e  # TODO: 添加retry机制
+
+
+@shared_task(bind=True)
+def sync_block(self, mids, min_interval=600, force_update=False):
+    """
+    一次性同步一个列表中的所有成员
+    :param mids:
+    :param min_interval:
+    :param force_update:
+    :return:
+    """
+    for mid in mids:
+        sync_member(mid, min_interval=min_interval, force_update=force_update)
+    return self.request.id
+
+
+@shared_task
+@transaction.atomic
+def sync_block_success(uuid, sid):
+    sync_info = models.DynamicSyncInfo.objects.get(sid=sid)
+    sync_info.success_tasks.add(SyncTask.objects.get_or_create(uuid=uuid)[0])
+    sync_info.save()
+
+
+@shared_task
+@transaction.atomic
+def sync_block_fail(request, exc, traceback, sid):
+    sync_info = models.DynamicSyncInfo.objects.get(sid=sid)
+    sync_info.failed_tasks.add(SyncTask.objects.get_or_create(uuid=request.id)[0])
+    sync_info.save()
 

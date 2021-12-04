@@ -1,3 +1,5 @@
+import warnings
+
 from django.db import models
 
 from subscribe.models import SubscribeMember
@@ -37,4 +39,36 @@ class Dynamic(models.Model):
             "timestamp": self.timestamp.timestamp(),
             "raw": self.raw
         }
+
+
+class SyncTask(models.Model):
+    uuid = models.UUIDField(primary_key=True)
+
+    def __str__(self):
+        return str(self.uuid)
+
+
+class DynamicSyncInfo(models.Model):
+    sid = models.BigAutoField(primary_key=True)
+    sync_start_time = models.DateTimeField(auto_now_add=True)
+    sync_update_time = models.DateTimeField(auto_now=True)
+
+    total_tasks = models.ManyToManyField(SyncTask, related_name="info_total_tasks")
+    success_tasks = models.ManyToManyField(SyncTask, related_name="info_success_tasks")
+    failed_tasks = models.ManyToManyField(SyncTask, related_name="info_failed_tasks")
+
+    def finish(self):
+        return self.pending_tasks == 0
+
+    @property
+    def pending_tasks(self):
+        pending = self.total_tasks.count() - self.success_tasks.count() - self.failed_tasks.count()
+        if pending < 0:
+            warnings.warn(f"sid={self.sid} Pending < 0")
+            return 0
+        return pending
+
+    @classmethod
+    def get_latest(cls):
+        return DynamicSyncInfo.objects.order_by('-sid').first()
 
