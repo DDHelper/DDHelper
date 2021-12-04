@@ -32,6 +32,9 @@ def call_full_sync(chunk_size=5):
         elif sync_info.sync_start_time.timestamp() - timezone.now().timestamp() > 7200:
             # 之前的任务已经超过两小时了
             should_update = True
+        elif sync_info.sync_update_time.timestamp() - timezone.now().timestamp() > 600:
+            # 已经有10分钟没有收到新的任务信息了
+            should_update = True
     if should_update:
         sync_info = models.DynamicSyncInfo.objects.create()
 
@@ -46,8 +49,7 @@ def call_full_sync(chunk_size=5):
 
         tasks = []
         for block in blocks:
-            result = sync_block.s(block).apply_async(
-                link=sync_block_success.s(sync_info.sid),
+            result = sync_block.s(sync_info.sid, block).apply_async(
                 link_error=sync_block_fail.s(sync_info.sid))
             sync_info.total_tasks.add(SyncTask.objects.get_or_create(uuid=result.id)[0])
         sync_info.save()
@@ -127,9 +129,11 @@ def sync_member(mid: int, min_interval=600, force_update=False):
 
 
 @shared_task(bind=True)
-def sync_block(self, mids, min_interval=600, force_update=False):
+def sync_block(self, sid, mids, min_interval=600, force_update=False):
     """
     一次性同步一个列表中的所有成员
+    :param self:
+    :param sid:
     :param mids:
     :param min_interval:
     :param force_update:
@@ -137,10 +141,9 @@ def sync_block(self, mids, min_interval=600, force_update=False):
     """
     for mid in mids:
         sync_member(mid, min_interval=min_interval, force_update=force_update)
-    return self.request.id
+    sync_block_success(self.request.id, sid)
 
 
-@shared_task
 @transaction.atomic
 def sync_block_success(uuid, sid):
     sync_info = models.DynamicSyncInfo.objects.get(sid=sid)
@@ -152,6 +155,9 @@ def sync_block_success(uuid, sid):
 @transaction.atomic
 def sync_block_fail(request, exc, traceback, sid):
     sync_info = models.DynamicSyncInfo.objects.get(sid=sid)
-    sync_info.failed_tasks.add(SyncTask.objects.get_or_create(uuid=request.id)[0])
+    task = SyncTask.objects.get_or_create(uuid=request.id)[0]
+    task.fail_msg = '{1!r}\n{2!r}'.format(exc, traceback)
+    task.save()
+    sync_info.failed_tasks.add(task)
     sync_info.save()
 

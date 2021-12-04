@@ -43,6 +43,7 @@ class Dynamic(models.Model):
 
 class SyncTask(models.Model):
     uuid = models.UUIDField(primary_key=True)
+    fail_msg = models.CharField(null=True)
 
     def __str__(self):
         return str(self.uuid)
