@@ -10,7 +10,7 @@ class TimelineEntry(models.Model):
     dynamic = models.OneToOneField(
         Dynamic,
         on_delete=models.CASCADE,
-        primary_key=True)
+        primary_key=False)
     # 提取的动态含有的时间信息
     event_time = models.DateTimeField()
     # 动态类型类别
