@@ -6,6 +6,7 @@ omit =
     DDHelper/settings.py
     DDHelper/wsgi.py
     DDHelper/asgi.py
+    dynamic/testdata/import_test_members.py
 [report]
 show_missing = True
 skip_covered = True

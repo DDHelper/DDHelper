@@ -16,6 +16,8 @@ class SubscribeMember(models.Model):
     name = models.CharField(max_length=50)
     # 头像url
     face = models.URLField(max_length=200)
+    # 最近用户数据更新时间（头像、昵称)
+    last_profile_update = models.DateTimeField(auto_now=True)
 
     def as_dict(self):
         """
