@@ -6,6 +6,7 @@ from functools import wraps
 import requests
 from celery import shared_task
 from celery.utils.log import get_task_logger
+from requests.exceptions import ConnectTimeout, ReadTimeout, ProxyError
 
 from DDHelper import settings
 
@@ -20,9 +21,13 @@ DEFAULT_TIMEOUT = 10
 BLOCKED = False
 BLOCKED_START_TIME = None
 
-headers = {
+USER_AGENT = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4146.4 Safari/537.36'
 }
+
+
+GOOD_PROXY = None
+GOOD_PROXY_CALLS = 0
 
 
 class BlockedException(Exception):
@@ -30,15 +35,73 @@ class BlockedException(Exception):
         super(BlockedException, self).__init__(msg)
 
 
-def get_random_proxy():
+def get_random_proxy(retry=0, check_proxy=True):
     """
     get random proxy from proxypool
     :return: proxy
     """
+    global GOOD_PROXY, GOOD_PROXY_CALLS
+    if GOOD_PROXY is not None:
+        if GOOD_PROXY_CALLS < 20:
+            return GOOD_PROXY
+        else:
+            GOOD_PROXY = None
+            GOOD_PROXY_CALLS = 0
+
+    if retry > 5:
+        return None
     if settings.PROXY_POOL:
-        return {'http': "http://" + requests.get(settings.PROXY_POOL).text.strip()}
+        proxies = {'http': "http://" + requests.get(settings.PROXY_POOL).text.strip()}
+        if check_proxy:
+            rsp = client_info(proxies)
+            if rsp:
+                GOOD_PROXY = proxies
+                GOOD_PROXY_CALLS = 0
+                return proxies
+            else:
+                return get_random_proxy(retry=retry + 1, check_proxy=check_proxy)
+        else:
+            return proxies
     else:
         return None
+
+
+def client_info(proxies=None):
+    try:
+        if proxies is None:
+            proxies = get_random_proxy(check_proxy=False)
+        rsp = requests.get(
+            "http://api.bilibili.com/client_info",
+            headers=USER_AGENT,
+            timeout=3,
+            proxies=proxies
+        )
+        if rsp.status_code != 200:
+            return None
+        else:
+            return rsp.json()
+    except Exception:
+        return None
+
+
+@contextmanager
+def _clear_proxy_info():
+    try:
+        yield
+    except Exception as e:
+        global GOOD_PROXY, GOOD_PROXY_CALLS
+        GOOD_PROXY = None
+        GOOD_PROXY_CALLS = 0
+        raise e
+
+
+def clear_proxy_info_on_error(func):
+    @wraps(func)
+    def call_func(*args, **kwargs):
+        with _clear_proxy_info():
+            return func(*args, **kwargs)
+
+    return call_func
 
 
 @contextmanager
@@ -75,9 +138,7 @@ def check_response(rsp):
     :return:
     """
     if rsp.status_code == 412:
-        global BLOCKED, BLOCKED_START_TIME
-        if not BLOCKED:
-            set_blocked()
+        set_blocked()
 
 
 def set_blocked():
@@ -87,13 +148,19 @@ def set_blocked():
     """
     global BLOCKED, BLOCKED_START_TIME
     BLOCKED = True
+
+    global GOOD_PROXY, GOOD_PROXY_CALLS
+    GOOD_PROXY = None
+    GOOD_PROXY_CALLS = 0
+
     from django.utils import timezone
     import pytz
     BLOCKED_START_TIME = timezone.now().astimezone(pytz.timezone("Asia/Shanghai"))
     print(f"[{BLOCKED_START_TIME}] 当前机器或ip可能被b站拦截，已停止所有请求，请管理员手动处理")
-    import celery.worker.control as control
-    control.disable_events()
-    print(f"已停止任务队列")
+    # 并不能停止任务队列
+    # import celery.worker.control as control
+    # control.disable_events()
+    # print(f"已停止任务队列")
 
 
 def check_security():
@@ -103,6 +170,26 @@ def check_security():
     """
     if BLOCKED:
         raise BlockedException(f"[{BLOCKED_START_TIME}] 当前机器或ip可能被b站拦截，已停止所有请求，请管理员手动处理")
+
+
+# noinspection PyTypeChecker
+def call_api(url, params=None, headers=None, timeout=DEFAULT_TIMEOUT, **kwargs):
+    if headers is None:
+        headers = USER_AGENT
+    # 使用代理的情况下不进行拦截判定
+    # check_security()
+    rsp = requests.get(
+        url,
+        params=params,
+        headers=headers,
+        timeout=timeout,
+        proxies=kwargs['proxies'] if 'proxies' in kwargs else get_random_proxy()
+    )
+    check_response(rsp)
+    if rsp.status_code != 200:
+        return None
+    else:
+        return rsp.json()
 
 
 def get_data_if_valid(rsp, fallback_msg="unknown"):
@@ -122,6 +209,7 @@ def get_data_if_valid(rsp, fallback_msg="unknown"):
 
 # noinspection PyTypeChecker
 @shared_task()
+@clear_proxy_info_on_error
 @with_default_wait
 def space_history(host_uid: int, offset_dynamic_id: int):
     """
@@ -130,27 +218,19 @@ def space_history(host_uid: int, offset_dynamic_id: int):
     :param offset_dynamic_id: 起始动态id，默认为0（获取最新的动态），不包括这个id的动态
     :return:
     """
-    check_security()
-    rsp = requests.get(
-        "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history",
+    return call_api(
+        "http://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history",
         params={
             "visitor_uid": 0,
             "host_uid": host_uid,
             "offset_dynamic_id": offset_dynamic_id
         },
-        headers=headers,
-        timeout=DEFAULT_TIMEOUT,
-        proxies=get_random_proxy()
     )
-    check_response(rsp)
-    if rsp.status_code != 200:
-        return None
-    else:
-        return rsp.json()
 
 
 # noinspection PyTypeChecker
 @shared_task()
+@clear_proxy_info_on_error
 @with_default_wait
 def user_profile(mid: int):
     """
@@ -158,50 +238,39 @@ def user_profile(mid: int):
     :param mid: b站用户id
     :return:
     """
-    check_security()
-    rsp = requests.get(
-        "https://api.bilibili.com/x/space/acc/info",
+    return call_api(
+        "http://api.bilibili.com/x/space/acc/info",
         params={
             "mid": mid,
             "jsonp": "jsonp"
         },
-        headers=headers,
-        timeout=DEFAULT_TIMEOUT,
-        proxies=get_random_proxy()
     )
-    check_response(rsp)
-    if rsp.status_code != 200:
-        return None
-    else:
-        return rsp.json()
 
+
+# TODO 部分要求低延迟的api需要一个不使用代理的解决方案
 
 # noinspection PyTypeChecker
 @shared_task()
+@clear_proxy_info_on_error
 def user_stat(mid: int):
     """
     获取b站用户数据
     :param mid: b站用户id
     :return:
     """
-    check_security()
-    rsp = requests.get(
-        "https://api.bilibili.com/x/relation/stat",
+    return call_api(
+        "http://api.bilibili.com/x/relation/stat",
         params={
             "vmid": mid,
             "jsonp": "jsonp"
         },
-        headers=headers,
-        timeout=DEFAULT_TIMEOUT)
-    check_response(rsp)
-    if rsp.status_code != 200:
-        return None
-    else:
-        return rsp.json()
+        proxies=None
+    )
 
 
 # noinspection PyTypeChecker
 @shared_task
+@clear_proxy_info_on_error
 def search_user_name(name: str):
     """
     根据关键字搜索用户名
@@ -209,18 +278,14 @@ def search_user_name(name: str):
     :param name: 关键字
     :return:
     """
-    check_security()
-    rsp = requests.get("http://api.bilibili.com/x/web-interface/search/type",
-                       params={
-                           "search_type": "bili_user",
-                           "keyword": name
-                       },
-                       timeout=DEFAULT_TIMEOUT)
-    check_response(rsp)
-    if rsp.status_code != 200:
-        return None
-    else:
-        return rsp.json()
+    return call_api(
+        "http://api.bilibili.com/x/web-interface/search/type",
+        params={
+            "search_type": "bili_user",
+            "keyword": name
+        },
+        proxies=None
+    )
 
 
 # noinspection PyTypeChecker
@@ -232,21 +297,18 @@ def search_user_id(mid: int):
     :param mid:
     :return:
     """
-    check_security()
-    rsp = requests.get("http://api.bilibili.com/x/web-interface/search/all/v2",
-                       params={
-                           "search_type": "bili_user",
-                           "keyword": f'uid:{mid}'
-                       },
-                       timeout=DEFAULT_TIMEOUT)
-    check_response(rsp)
-    if rsp.status_code != 200:
-        return None
-    else:
-        return rsp.json()
+    return call_api(
+        "http://api.bilibili.com/x/web-interface/search/all/v2",
+        params={
+            "search_type": "bili_user",
+            "keyword": f'uid:{mid}'
+        },
+        proxies=None
+    )
 
 
 if __name__ == '__main__':
-    # print(space_history(557839, 5190712790698414))
-    print(user_profile(489391680))
+    # print(client_info())
+    print(space_history(557839, 0))
+    # print(user_profile(489391680))
 
