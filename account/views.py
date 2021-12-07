@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import BadRequest
 from django.core.mail import send_mail
 from django.http import JsonResponse
+from django.views.decorators.http import require_GET, require_POST
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
 
@@ -19,6 +20,7 @@ REGISTER_PIN_VERIFY_RETIES = 'REGISTER_PIN_VERIFY_RETIES'
 REGISTER_PIN_VERIFY_MAX_RETIES = 10
 
 
+@require_POST
 @csrf_exempt
 def login(request):
     """
@@ -64,6 +66,7 @@ def login(request):
 
 
 @login_required
+@require_GET
 @csrf_exempt
 def user_info(request):
     user = request.user
@@ -77,6 +80,7 @@ def user_info(request):
     })
 
 
+@require_POST
 @csrf_exempt
 def register(request):
     """
@@ -139,6 +143,7 @@ def register(request):
     return JsonResponse({'code': 200, 'msg': ''})
 
 
+@require_POST
 @csrf_exempt
 def send_pin(request):
     """
@@ -226,6 +231,7 @@ def clear_pin_info(request):
     del request.session[REGISTER_PIN_VERIFY_RETIES]
 
 
+@require_GET
 @csrf_exempt
 def verify_pin(request):
     """
