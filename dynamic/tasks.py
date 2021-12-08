@@ -147,7 +147,9 @@ def sync_block(self, sid, mids, min_interval=600, force_update=False):
 @transaction.atomic
 def sync_block_success(uuid, sid):
     sync_info = models.DynamicSyncInfo.objects.get(sid=sid)
-    sync_info.success_tasks.add(SyncTask.objects.get_or_create(uuid=uuid)[0])
+    task = SyncTask.objects.get_or_create(uuid=uuid)[0]
+    sync_info.success_tasks.add(task)
+    sync_info.failed_tasks.remove(task)
     sync_info.save()
 
 
