@@ -15,7 +15,7 @@ class TimelineEntry(models.Model):
     event_time = models.DateTimeField()
     # 动态类型类别
     EVENT_TYPE = [
-        ('NT', 'Non-time'),
+        ('UN', 'Unknown'),
         ('ST', 'Stream'),
         ('LO', 'Lottery'),
         ('RE', 'Release')
