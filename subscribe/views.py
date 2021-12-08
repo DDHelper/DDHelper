@@ -31,7 +31,6 @@ def search(request):
      - raw          object   必须     原始查询结果
     code	integer	必须
     """
-    # TODO 对关键词进行提前过滤判断
     try:
         name = request.GET['search_name']
     except KeyError:
