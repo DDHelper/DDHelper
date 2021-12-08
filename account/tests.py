@@ -92,6 +92,31 @@ class RegisterTest(TestCase):
             })
         self.assertEqual(response.status_code, 400)
         self.assertDictEqual(response.json(), {'code': 400, "msg": "用户名或邮箱已被占用"})
+    
+    def test_register_timeout(self):
+        '''
+        验证码超时
+        '''
+        response = self.client.post(
+            "/account/send_pin/",
+            {
+                "email": "test@test.test",
+            })
+        self.assertEqual(response.status_code, 200)
+
+        #验证码超时
+        self.client.session[views.REGISTER_SEND_PIN_TIME] = 0
+        response = self.client.post(
+            "/account/register/",
+            {
+                "username": "test_account",
+                "password": "123456",
+                "email": "test@test.test",
+                "pin": self.client.session[views.REGISTER_PIN]
+            })
+        self.assertEqual(response.status_code, 400)
+        self.assertDictEqual(response.json(), {'code': 400, "msg": "验证码已超时"})
+
 
 
 class LoginTest(TestCase):
