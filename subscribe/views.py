@@ -3,7 +3,7 @@ from django.core.exceptions import ObjectDoesNotExist, BadRequest
 from django.db.models import Count
 from django.http import QueryDict
 from django.http.response import JsonResponse
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST, require_GET
 
 from subscribe import models
 from subscribe.models import MemberGroup, SubscribeMember
@@ -11,6 +11,7 @@ from dynamic import tasks as dynamic_task
 from biliapi.tasks import search_user_name, user_profile, user_stat, get_data_if_valid
 
 
+@require_GET
 @login_required
 def search(request):
     """
@@ -30,6 +31,7 @@ def search(request):
      - raw          object   必须     原始查询结果
     code	integer	必须
     """
+    # TODO 对关键词进行提前过滤判断
     name = request.GET.get('search_name')
     search_result = []
     for result in search_user_name.delay(name).get()["data"]["result"]:
@@ -47,6 +49,7 @@ def search(request):
     })
 
 
+@require_GET
 @login_required
 def group_list(request):
     groups = MemberGroup.select_groups_by_account(request.user.uid).annotate(Count("members"))
@@ -63,6 +66,7 @@ def group_list(request):
     })
 
 
+@require_GET
 @login_required
 def group_members(request):
     # URL形式传入需要切换的分组名
@@ -100,6 +104,7 @@ def group_members(request):
         }, status=404)
 
 
+@require_POST
 @login_required
 def subscribe(request):
     # POST形式提交需要关注的up主的mid以及需要加入的分组的gid(以list形式)
@@ -119,6 +124,7 @@ def subscribe(request):
     return JsonResponse({'code': 200})
 
 
+@require_POST
 @login_required
 def add_group(request):
     # POST提交新增分组的名称group_name
@@ -139,6 +145,7 @@ def add_group(request):
     })
 
 
+@require_POST
 @login_required
 def update_group(request):
     """
@@ -207,6 +214,7 @@ def delete_group(request):
         }, status=404)
 
 
+@require_POST
 @login_required
 def member_move(request):
     """
