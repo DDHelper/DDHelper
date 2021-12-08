@@ -77,3 +77,19 @@ class DynamicSyncInfo(models.Model):
     def get_latest(cls):
         return DynamicSyncInfo.objects.order_by('-sid').first()
 
+    def as_dict(self):
+        return {
+            'sid': self.sid,
+            'finish': self.finish(),
+            'time_cost': self.time_cost,
+            'sync_start_time': self.sync_start_time,
+            'sync_update_time': self.sync_update_time,
+            'total_tasks': self.total_tasks.count(),
+            'pending_tasks': self.pending_tasks,
+            'success_tasks': self.success_tasks.count(),
+            'failed_tasks': self.failed_tasks.count(),
+        }
+
+    def __str__(self):
+        return str(self.as_dict())
+
