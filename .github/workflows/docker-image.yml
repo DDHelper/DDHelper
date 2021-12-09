@@ -21,4 +21,5 @@ jobs:
     - name: Push Docker image
       run: |
           docker login --username=${{ secrets.TQ_ID }} -p ${{ secrets.TQ_PASSWORD }}  ccr.ccs.tencentyun.com
+          echo 上传镜像 ccr.ccs.tencentyun.com/edrows/ddhelper:$tag
           sudo docker push ccr.ccs.tencentyun.com/edrows/ddhelper:$tag
