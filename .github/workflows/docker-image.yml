@@ -15,4 +15,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag ddhelper:$(date +%s)
+      run: |
+          tag=ccr.ccs.tencentyun.com/edrows/ddhelper:$(date +%s)-github-build
+          docker build . --file Dockerfile --tag $tag
+    - name: Push Docker image
+      run: |
+          docker login --username=${{ secrets.TQ_ID }} -p ${{ secrets.TQ_PASSWORD }}  ccr.ccs.tencentyun.com
+          sudo docker push ccr.ccs.tencentyun.com/edrows/ddhelper:$tag
