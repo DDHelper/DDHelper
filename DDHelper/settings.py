@@ -69,7 +69,8 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'account',
     'dynamic',
-    'subscribe'
+    'subscribe',
+    'timeline'
 ]
 
 MIDDLEWARE = [
