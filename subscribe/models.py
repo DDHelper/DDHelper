@@ -80,6 +80,20 @@ class MemberGroup(models.Model):
         return SubscribeMember.objects.get(mid=mid).membergroup_set.filter(user=aid)
 
     @classmethod
+    def is_subscribed(cls, aid, mid):
+        """
+        查询一个用户是否关注了某个成员
+        :param aid:
+        :param mid:
+        :return:
+        """
+        try:
+            member = SubscribeMember.objects.get(mid=mid)
+            return member.membergroup_set.filter(user=aid).exist()
+        except SubscribeMember.DoesNotExist:
+            return False
+
+    @classmethod
     def set_groups_by_account_and_member(cls, aid, mid, groups):
         """
         修改一个用户关注的某个成员所在的分组列表

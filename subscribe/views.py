@@ -31,16 +31,31 @@ def search(request):
      - raw          object   必须     原始查询结果
     code	integer	必须
     """
-    # TODO 对关键词进行提前过滤判断
-    name = request.GET.get('search_name')
+    try:
+        name = request.GET['search_name']
+    except KeyError:
+        raise BadRequest()
+
+    if len(name) == 0:
+        return JsonResponse({
+            'code': 200,
+            'data': []
+        })
+
     search_result = []
-    for result in search_user_name.delay(name).get()["data"]["result"]:
+    data, msg, = get_data_if_valid(search_user_name.delay(name).get())
+    if data is None:
+        raise BadRequest(msg)
+
+    aid = request.user.uid
+    for result in data.get("result", []):
         search_result.append({
             "mid": result["mid"],
             "uname": result["uname"],
             "fans": result["fans"],
             "usign": result["usign"],
             "upic": result["upic"],
+            "subscribed": MemberGroup.is_subscribed(aid, result["mid"]),
             "raw": result
         })
     return JsonResponse({
