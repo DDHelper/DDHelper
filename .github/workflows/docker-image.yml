@@ -16,10 +16,11 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build the Docker image
       run: |
-          export tag=ccr.ccs.tencentyun.com/edrows/ddhelper:$(date +%s)-github-build
-          docker build . --file Dockerfile --tag $tag
+          export TAG=ccr.ccs.tencentyun.com/edrows/ddhelper:$(date +%s)-github-build
+          echo "::set-env name=TAG::$TAG"
+          docker build . --file Dockerfile --tag $TAG
     - name: Push Docker image
       run: |
           docker login --username=${{ secrets.TQ_ID }} -p ${{ secrets.TQ_PASSWORD }}  ccr.ccs.tencentyun.com
-          echo 上传镜像 ccr.ccs.tencentyun.com/edrows/ddhelper:$tag
-          sudo docker push ccr.ccs.tencentyun.com/edrows/ddhelper:$tag
+          echo 上传镜像 ccr.ccs.tencentyun.com/edrows/ddhelper:$TAG
+          sudo docker push ccr.ccs.tencentyun.com/edrows/ddhelper:$TAG
