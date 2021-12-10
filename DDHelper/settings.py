@@ -33,7 +33,10 @@ CELERY_RESULT_BACKEND = 'django-db'
 CELERY_TASK_SERIALIZER = 'json'
 
 CELERY_BEAT_SCHEDULE = {
-
+    "dynamic_full_sync": {
+        'task': 'dynamic.tasks.call_full_sync',
+        'schedule': 600.0,
+    }
 }
 
 CELERY_TASK_ROUTES = ([
