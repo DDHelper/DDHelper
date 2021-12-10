@@ -33,7 +33,16 @@ class RegisterTest(TestCase):
                 "email": "test@test.test",
             })
         self.assertEqual(response.status_code, 200)
+        #连续send
+        response = self.client.post(
+            "/account/send_pin/",
+            {
+                "email": "test@test.test",
+            })
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['msg'], "重新发送验证码前请等待60秒")
 
+        
         response = self.client.get(
             "/account/verify_pin/",
             {
@@ -104,6 +113,37 @@ class RegisterTest(TestCase):
             })
         self.assertEqual(response.status_code, 400)
         self.assertDictEqual(response.json(), {'code': 400, "msg": "用户名或邮箱已被占用"})
+    
+    def test_register_brutal_guess(self):
+        '''
+        暴力猜测验证码
+        '''
+        response = self.client.post(
+            "/account/send_pin/",
+            {
+                "email": "test@test.test",
+            })
+        self.assertEqual(response.status_code, 200)
+        
+        for i in range(views.REGISTER_PIN_VERIFY_MAX_RETIES):
+            response = self.client.post(
+                "/account/register/",
+                {
+                    "username": "test_account",
+                    "password": "123456",
+                    "email": "test@test.test",
+                    "pin": 123
+                })
+        response = self.client.post(
+            "/account/register/",
+            {
+                "username": "test_account",
+                "password": "123456",
+                "email": "test@test.test",
+                "pin": self.client.session[views.REGISTER_PIN]
+            })
+        self.assertEqual(response.status_code, 400)
+        self.assertDictEqual(response.json(), {'code': 400, "msg": "验证码或邮箱不正确"})
 
 
 class LoginTest(TestCase):
