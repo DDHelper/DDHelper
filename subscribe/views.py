@@ -1,4 +1,4 @@
-from django.contrib.auth.decorators import login_required
+from account.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, BadRequest
 from django.db.models import Count
 from django.http import QueryDict

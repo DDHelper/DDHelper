@@ -2,7 +2,7 @@ import random
 import time
 
 import django.contrib.auth as auth
-from django.contrib.auth.decorators import login_required
+from .decorators import login_required
 from django.core.exceptions import BadRequest
 from django.core.mail import send_mail
 from django.http import JsonResponse

@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
+from account.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.core.exceptions import ObjectDoesNotExist, BadRequest
 from django.views.decorators.http import require_GET, require_POST
