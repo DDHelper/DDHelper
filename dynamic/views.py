@@ -1,4 +1,6 @@
 from django.shortcuts import render
+
+from DDHelper.util import load_params
 from account.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.core.exceptions import ObjectDoesNotExist, BadRequest
@@ -13,12 +15,10 @@ from .models import Dynamic
 @require_GET
 @login_required
 def list_dynamic(request):
-    try:
+    with load_params():
         gid = int(request.GET.get('gid', 0))
         offset = int(request.GET.get('offset', 0))
         size = int(request.GET.get('size', 20))
-    except KeyError or ValueError:  # 需要关注的对象还不在Member中，尝试加入
-        raise BadRequest()
 
     group = MemberGroup.get_group(aid=request.user.uid, gid=gid)
     if group is not None:

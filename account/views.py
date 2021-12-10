@@ -2,6 +2,8 @@ import random
 import time
 
 import django.contrib.auth as auth
+
+from DDHelper.util import load_params
 from .decorators import login_required
 from django.core.exceptions import BadRequest
 from django.core.mail import send_mail
@@ -41,11 +43,9 @@ def login(request):
     如果登录成功，返回用户信息，通过Set-Cookies返回认证信息
     如果登录失败，code设置为403，不返回data
     """
-    try:
+    with load_params():
         username = request.POST['username']
         password = request.POST['password']
-    except KeyError:
-        raise BadRequest
 
     user = auth.authenticate(username=username,
                              password=password)
@@ -100,13 +100,11 @@ def register(request):
     注册一个账号。
     如果失败，code设置为403，msg为失败的原因
     """
-    try:
+    with load_params():
         username = request.POST['username']
         password = request.POST['password']
         email = request.POST['email']
         pin = int(request.POST['pin'])
-    except KeyError or ValueError:
-        raise BadRequest()
 
     try:
         if check_pin_timeout(request):
@@ -170,10 +168,8 @@ def send_pin(request):
     except KeyError:
         pass
 
-    try:
+    with load_params():
         email = request.POST['email']
-    except KeyError:
-        raise BadRequest()
 
     pin = random.randint(100000, 999999)
     request.session[REGISTER_SEND_PIN_TIME] = time.time()
@@ -251,11 +247,9 @@ def verify_pin(request):
     如果验证成功，正常返回
     如果验证失败，code设置为403，msg为失败的原因
     """
-    try:
+    with load_params():
         email = request.GET['email']
         pin = int(request.GET['pin'])
-    except KeyError or ValueError:
-        raise BadRequest()
 
     try:
         if check_pin_timeout(request):
