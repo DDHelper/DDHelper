@@ -64,6 +64,18 @@ class RegisterTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['match'], False)
 
+        #验证码错误
+        response = self.client.post(
+            "/account/register/",
+            {
+                "username": "test_account",
+                "password": "123456",
+                "email": "test@test.test",
+                "pin": 123
+            })
+        self.assertEqual(response.status_code, 400)
+        self.assertDictEqual(response.json(), {'code': 400, "msg": "验证码或邮箱不正确"})
+
         response = self.client.post(
             "/account/register/",
             {
