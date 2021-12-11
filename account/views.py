@@ -176,13 +176,20 @@ def send_pin(request):
     request.session[REGISTER_EMAIL] = email
     request.session[REGISTER_PIN] = pin
     request.session[REGISTER_PIN_VERIFY_RETIES] = 0
-    send_mail(
-        'DDHelper注册验证码',
-        f"您用于注册DDHelper账号的验证码为：{pin}",
-        settings.PIN_EMAIL,
-        [email],
-        fail_silently=True,
-    )
+    try:
+        send_mail(
+            'DDHelper注册验证码',
+            f"您用于注册DDHelper账号的验证码为：{pin}",
+            settings.PIN_EMAIL,
+            [email],
+            fail_silently=settings.EMAIL_FAIL_SILENTLY,
+        )
+    except Exception as e:
+        return JsonResponse({
+            'code': 400,
+            'msg': '邮件发送失败，请重试',
+            'exception': str(e) if settings.DEBUG  else ""
+        }, status=400)
     return JsonResponse({'code': 200, 'msg': ''})
 
 

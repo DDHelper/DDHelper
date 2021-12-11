@@ -128,6 +128,8 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', None)
 EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', None) == 'True'
 PIN_EMAIL = os.environ.get('PIN_EMAIL', None)
 
+EMAIL_FAIL_SILENTLY = not TESTING
+
 AUTH_USER_MODEL = 'account.Userinfo'
 
 # Password validation
