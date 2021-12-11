@@ -29,11 +29,11 @@ def call_full_sync(chunk_size=5):
         if sync_info.finish():
             # 之前的任务已经完成了
             should_update = True
-        elif sync_info.sync_start_time.timestamp() - timezone.now().timestamp() > 7200:
+        elif timezone.now().timestamp() - sync_info.sync_start_time.timestamp() > 7200:
             # 之前的任务已经超过两小时了
             should_update = True
-        elif sync_info.sync_update_time.timestamp() - timezone.now().timestamp() > 600:
-            # 已经有10分钟没有收到新的任务信息了
+        elif timezone.now().timestamp() - sync_info.sync_update_time.timestamp() > 300:
+            # 已经有5分钟没有收到新的任务信息了
             should_update = True
     if should_update:
         sync_info = models.DynamicSyncInfo.objects.create()
