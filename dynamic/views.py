@@ -5,11 +5,30 @@ from account.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.core.exceptions import ObjectDoesNotExist, BadRequest
 from django.views.decorators.http import require_GET, require_POST
+from django.views.generic import ListView, DetailView
 
 from subscribe.models import MemberGroup
-from .models import Dynamic
+from .models import Dynamic, DynamicSyncInfo
 
 # Create your views here.
+
+
+class DynamicSyncInfoListView(ListView):
+    paginate_by = 20
+    queryset = DynamicSyncInfo.objects.order_by('-sid')
+    context_object_name = 'dynamic_sync_info'
+
+
+class DynamicSyncInfoDetailView(DetailView):
+    queryset = DynamicSyncInfo.objects.all()
+    context_object_name = 'dynamic_sync_info'
+
+
+class DynamicSyncInfoLatestDetailView(DetailView):
+    template_name = 'dynamic/dynamicsyncinfo_detail.html'
+
+    def get_object(self, queryset=None):
+        return DynamicSyncInfo.get_latest()
 
 
 @require_GET
