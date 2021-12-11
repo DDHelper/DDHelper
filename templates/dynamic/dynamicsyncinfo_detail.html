@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load tz %}
+{% block content %}
+{% timezone "Asia/Shanghai" %}
+    <h2>Dynamic Sync Info sid={{object.sid}}</h2>
+    <p>执行状态（是否结束）：{{object.finish}}</p>
+    <p>已耗时：{{object.time_cost}}</p>
+    <p>开始时间：{{object.sync_start_time}}</p>
+    <p>更新时间：{{object.sync_update_time}}</p>
+    <table>
+        <tr>
+            <th>总任务数</th>
+            <th>已完成</th>
+            <th>失败</th>
+            <th>等待中</th>
+            <th>完成率</th>
+        </tr>
+        <tr>
+            <td>{{object.total_tasks.count}}</td>
+            <td>{{object.success_tasks.count}}</td>
+            <td>{{object.failed_tasks.count}}</td>
+            <td>{{object.pending_tasks}}</td>
+        </tr>
+    </table>
+{% endtimezone %}
+{% endblock %}
