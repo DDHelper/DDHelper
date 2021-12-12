@@ -1,0 +1,28 @@
+version: "3"
+services:
+    ddh_main:
+        image: ccr.ccs.tencentyun.com/edrows/ddhelper:main
+        container_name: ddh_main
+        env_file:
+            - envfile.txt
+        ports:
+            - "8000:8000"
+        command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    ddh_dynamic:
+        image: ccr.ccs.tencentyun.com/edrows/ddhelper:main
+        container_name: ddh_dynamic
+        env_file:
+            - envfile.txt
+        command: ["celery", "-A", "DDHelper", "worker", "-Q", "dynamic", "-l", "info", "--max-tasks-per-child", "100", "--autoscale", "10,3", "-E"]
+    ddh_biliapi:
+        image: ccr.ccs.tencentyun.com/edrows/ddhelper:main
+        container_name: ddh_biliapi
+        env_file:
+            - envfile.txt
+        command: ["celery", "-A", "DDHelper", "worker", "-Q", "biliapi", "-l", "info", "--max-tasks-per-child", "100", "-c", "2", "-E"]
+    ddh_beat:
+        image: ccr.ccs.tencentyun.com/edrows/ddhelper:main
+        container_name: ddh_beat
+        env_file:
+            - envfile.txt
+        command: ["celery", "-A", "DDHelper", "beat", "-l", "info"]
