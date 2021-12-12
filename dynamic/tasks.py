@@ -48,7 +48,7 @@ def call_full_sync(chunk_size=5, min_interval=settings.DYNAMIC_SYNC_MEMBER_MIN_I
         blocks = [all_mid[i * chunk_size:(i + 1) * chunk_size] for i in range(full_block)]
         if half_block != 0:
             blocks.append(all_mid[full_block * chunk_size:])
-
+        sync_info.sync_msg = f"预计同步数量：{len(all_mid)}  预计任务块数量：{len(blocks)}"
         sync_info.save()
 
         tasks = []
