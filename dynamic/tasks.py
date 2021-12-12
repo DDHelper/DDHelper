@@ -52,7 +52,6 @@ def call_full_sync(chunk_size=5):
             result = sync_block.s(sync_info.sid, block).apply_async(
                 link_error=sync_block_fail.s(sync_info.sid))
             sync_info.total_tasks.add(SyncTask.objects.get_or_create(uuid=result.id)[0])
-        sync_info.save()
         logger.info(f"执行全动态同步，发出{len(tasks)}个任务")
 
 
@@ -144,7 +143,6 @@ def sync_block(self, sid, mids, min_interval=600, force_update=False):
     sync_block_success(self.request.id, sid)
 
 
-@transaction.atomic
 def sync_block_success(uuid, sid):
     sync_info = models.DynamicSyncInfo.objects.get(sid=sid)
     task = SyncTask.objects.get_or_create(uuid=uuid)[0]
