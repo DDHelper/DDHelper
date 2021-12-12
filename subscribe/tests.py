@@ -1,5 +1,6 @@
 from django.test import Client
 from django.test import TestCase
+from django.core.exceptions import ObjectDoesNotExist, BadRequest
 
 from account.models import Userinfo
 from . import models
@@ -7,7 +8,7 @@ from . import models
 
 # Create your tests here.
 
-class Login_Required_TestCase(TestCase):  # 检测搜索功能是否可以使用
+class Login_Required_TestCase(TestCase):  # 检测Login_Required功能是否可以使用
     def test_login_required(self):
         c = Client()
         response = c.get('/subscribe/search/', {'search_name': 'vac47'})
@@ -47,6 +48,15 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
         self.assertEqual(response.json()['data'][0]['count'], 0)
 
         default_group = response.json()['data'][0]['gid']
+        #订阅不存在的Up主
+        response = self.client.post(
+            "/subscribe/subscribe/",
+            {
+                'mid': 416622555555555817,
+                'gid': default_group
+            })
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()['msg'], "添加的up主不存在或不符合要求")
 
         response = self.client.post(
             "/subscribe/subscribe/",
