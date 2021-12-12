@@ -7,5 +7,5 @@ from django.core.exceptions import BadRequest
 def load_params():
     try:
         yield
-    except KeyError or ValueError:
+    except (KeyError, ValueError):
         raise BadRequest()
