@@ -78,6 +78,16 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
         self.assertEqual(json_body['data']['data'][0]['mid'], 416622817)
         self.assertEqual(json_body['data']['data'][0]['name'], '步玎Pudding')
 
+        #更改默认分组名
+        response = self.client.post(
+            "/subscribe/group/update/",
+            {
+                'gid': default_group,
+                'group_name': 'new_group2'
+            })
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()['msg'], '默认分组无法改名')
+
         response = self.client.post(
             "/subscribe/group/add/",
             {
