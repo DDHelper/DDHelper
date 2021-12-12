@@ -50,7 +50,7 @@ def call_full_sync(chunk_size=5):
         tasks = []
         for block in blocks:
             result = sync_block.s(sync_info.sid, block).apply_async(
-                link_error=sync_block_fail.s(sync_info.sid))
+                link_error=sync_block_fail.s(sync_info.sid), countdown=5)
             sync_info.total_tasks.add(SyncTask.objects.get_or_create(uuid=result.id)[0])
         sync_info.save()
         logger.info(f"执行全动态同步，发出{len(tasks)}个任务")
