@@ -6,7 +6,7 @@ import django.contrib.auth as auth
 from DDHelper.util import load_params
 from .decorators import login_required
 from django.core.exceptions import BadRequest
-from django.core.mail import send_mail
+from django.core import mail
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.db.models import Q
@@ -186,7 +186,7 @@ def send_pin(request):
     request.session[REGISTER_PIN] = pin
     request.session[REGISTER_PIN_VERIFY_RETIES] = 0
     try:
-        send_mail(
+        mail.send_mail(
             'DDHelper注册验证码',
             f"您用于注册DDHelper账号的验证码为：{pin}",
             settings.PIN_EMAIL,
@@ -197,7 +197,7 @@ def send_pin(request):
         return JsonResponse({
             'code': 400,
             'msg': '邮件发送失败，请重试',
-            'exception': str(e) if settings.DEBUG  else ""
+            'exception': str(e) if settings.DEBUG else ""
         }, status=400)
     return JsonResponse({'code': 200, 'msg': ''})
 
