@@ -7,6 +7,12 @@ from . import models
 
 # Create your tests here.
 
+class Login_Required_TestCase(TestCase):  # 检测搜索功能是否可以使用
+    def test_login_required(self):
+        c = Client()
+        response = c.get('/subscribe/search/', {'search_name': 'vac47'})
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()['msg'], "未登录")
 
 class SearchTestCase(TestCase):  # 检测搜索功能是否可以使用
     def setUp(self):
@@ -14,12 +20,12 @@ class SearchTestCase(TestCase):  # 检测搜索功能是否可以使用
             username='test_user',
             password='12345678',
             email='test@test.test')
-
+    
     def test_search_function_work(self):  # 检测是否能正确返回搜索结果
         c = Client()
         c.login(username='test_user', password='12345678')
         response = c.get('/subscribe/search/', {'search_name': 'vac47'})
-        self.assertEqual(response.json()["data"][0]["mid"], 3985768)
+        self.assertEqual(response.json()["data"][0]["mid"], 3985768)        
 
 
 class SubscribeTestCase(TestCase):  # 检测列表管理功能
