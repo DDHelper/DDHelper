@@ -13,7 +13,7 @@ services:
         container_name: ddh_dynamic
         env_file:
             - envfile.txt
-        command: ["celery", "-A", "DDHelper", "worker", "-Q", "dynamic", "-l", "info", "--max-tasks-per-child", "100", "--autoscale", "10:3", "-E"]
+        command: ["celery", "-A", "DDHelper", "worker", "-Q", "dynamic", "-l", "info", "--max-tasks-per-child", "100", "--autoscale", "10,3", "-E"]
     ddh_biliapi:
         image: ccr.ccs.tencentyun.com/edrows/ddhelper:main
         container_name: ddh_biliapi
