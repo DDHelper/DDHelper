@@ -7,18 +7,20 @@ import logging
 from . import dsync
 from . import models
 from .models import SyncTask
+from DDHelper import settings
 from subscribe.models import SubscribeMember
 
 logger: logging.Logger = get_task_logger(__name__)
 
 
 @shared_task
-def call_full_sync(chunk_size=5):
+def call_full_sync(chunk_size=5, min_interval=settings.DYNAMIC_SYNC_MEMBER_MIN_INTERVAL):
     """
     请求一次全动态同步。
     同步耗时可以估计为：
     成员数*每个成员预计时间（0.5s） / 有效worker数量
     :param chunk_size: 每一块请求的成员数量
+    :param min_interval
     :return:
     """
     sync_info = models.DynamicSyncInfo.get_latest()
@@ -37,8 +39,10 @@ def call_full_sync(chunk_size=5):
             should_update = True
     if should_update:
         sync_info = models.DynamicSyncInfo.objects.create()
-
-        all_mid = list(models.DynamicMember.objects.values_list("mid_id", flat=True))
+        time_mark = timezone.now()-timezone.timedelta(seconds=min_interval)
+        all_mid = list(models.DynamicMember.objects
+                       .filter(last_dynamic_update__lt=time_mark)
+                       .values_list("mid_id", flat=True))
         full_block = len(all_mid) // chunk_size
         half_block = len(all_mid) % chunk_size
         blocks = [all_mid[i * chunk_size:(i + 1) * chunk_size] for i in range(full_block)]
@@ -49,7 +53,7 @@ def call_full_sync(chunk_size=5):
 
         tasks = []
         for block in blocks:
-            result = sync_block.s(sync_info.sid, block).apply_async(
+            result = sync_block.s(sync_info.sid, block, min_interval=min_interval).apply_async(
                 link_error=sync_block_fail.s(sync_info.sid), countdown=5)
             sync_info.total_tasks.add(SyncTask.objects.get_or_create(uuid=result.id)[0])
         logger.info(f"执行全动态同步，发出{len(tasks)}个任务")
@@ -83,7 +87,7 @@ def add_member(mid: int, initial_sync=True, create_subscribe_member_in_place=Fal
 
 
 @shared_task
-def sync_member(mid: int, min_interval=600, force_update=False):
+def sync_member(mid: int, min_interval=settings.DYNAMIC_SYNC_MEMBER_MIN_INTERVAL, force_update=False):
     """
     同步某个成员最近的动态
     :param mid: 成员
@@ -128,7 +132,7 @@ def sync_member(mid: int, min_interval=600, force_update=False):
 
 
 @shared_task(bind=True)
-def sync_block(self, sid, mids, min_interval=600, force_update=False):
+def sync_block(self, sid, mids, min_interval=settings.DYNAMIC_SYNC_MEMBER_MIN_INTERVAL, force_update=False):
     """
     一次性同步一个列表中的所有成员
     :param self:

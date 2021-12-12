@@ -35,7 +35,7 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_BEAT_SCHEDULE = {
     "dynamic_full_sync": {
         'task': 'dynamic.tasks.call_full_sync',
-        'schedule': 600.0,
+        'schedule': 300.0,
     }
 }
 
@@ -49,6 +49,10 @@ PROXY_POOL = os.environ.get('PROXY_POOL', 'http://edrows.top:5555/random')
 if TESTING:
     PROXY_POOL = None
     CELERY_TASK_ALWAYS_EAGER = True
+
+
+# 动态同步时最小同步间隔
+DYNAMIC_SYNC_MEMBER_MIN_INTERVAL = 60*30
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-ftlcjkddikq@s5k*7+i4h-b(r%g6po%1cd2h40$uvz7cafhatc')
