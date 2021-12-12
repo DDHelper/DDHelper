@@ -6,7 +6,7 @@ import django.contrib.auth as auth
 from DDHelper.util import load_params
 from .decorators import login_required
 from django.core.exceptions import BadRequest
-from django.core.mail import send_mail
+from django.core import mail
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.db.models import Q
@@ -20,6 +20,7 @@ REGISTER_EMAIL = 'REGISTER_EMAIL'
 REGISTER_SEND_PIN_TIME = 'REGISTER_SEND_PIN_TIME'
 REGISTER_PIN_VERIFY_RETIES = 'REGISTER_PIN_VERIFY_RETIES'
 REGISTER_PIN_VERIFY_MAX_RETIES = 10
+REGISTER_PIN_TIME_OUT = 60
 
 
 @require_POST
@@ -171,7 +172,7 @@ def send_pin(request):
         if not check_pin_timeout(request):
             return JsonResponse({
                 'code': 400,
-                'msg': '重新发送验证码前请等待60秒'
+                'msg': f'重新发送验证码前请等待{REGISTER_PIN_TIME_OUT}秒'
             }, status=400)
     except KeyError:
         pass
@@ -185,7 +186,7 @@ def send_pin(request):
     request.session[REGISTER_PIN] = pin
     request.session[REGISTER_PIN_VERIFY_RETIES] = 0
     try:
-        send_mail(
+        mail.send_mail(
             'DDHelper注册验证码',
             f"您用于注册DDHelper账号的验证码为：{pin}",
             settings.PIN_EMAIL,
@@ -196,7 +197,7 @@ def send_pin(request):
         return JsonResponse({
             'code': 400,
             'msg': '邮件发送失败，请重试',
-            'exception': str(e) if settings.DEBUG  else ""
+            'exception': str(e) if settings.DEBUG else ""
         }, status=400)
     return JsonResponse({'code': 200, 'msg': ''})
 
@@ -207,7 +208,7 @@ def check_pin_timeout(request):
     :param request:
     :return:
     """
-    timeout = (time.time() - request.session[REGISTER_SEND_PIN_TIME]) > 60
+    timeout = (time.time() - request.session[REGISTER_SEND_PIN_TIME]) > REGISTER_PIN_TIME_OUT
     if timeout:
         clear_pin_info(request)
     return timeout
