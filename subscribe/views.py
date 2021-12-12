@@ -210,7 +210,7 @@ def delete_group(request):
             return JsonResponse({
                 'code': 403,
                 'msg': "默认分组无法被删除"
-            })
+            }, status=403)
         group.delete()
         return JsonResponse({
             'code': 200
