@@ -118,10 +118,44 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
         json_body = response.json()
         self.assertEqual(json_body['data']['group_name'], 'new_group2')
 
+        #分组名重复
+        response = self.client.post(
+            "/subscribe/group/update/",
+            {
+                'gid': new_group,
+                'group_name': 'new_group2'
+            })
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['msg'], '分组名重复')
+
+        #分组不存在
+        response = self.client.post(
+            "/subscribe/group/update/",
+            {
+                'gid': 16154849,
+                'group_name': 'new_group2'
+            })
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()['msg'], '分组不存在')
+
         response = self.client.delete(
             "/subscribe/group/delete/",
             f"gid={new_group}")
         self.assertEqual(response.status_code, 200)
+
+        #默认分组无法被删除
+        response = self.client.delete(
+            "/subscribe/group/delete/",
+            f"gid={default_group}")
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()['msg'], '默认分组无法被删除')
+
+        #不存在分组无法被删除
+        response = self.client.delete(
+            "/subscribe/group/delete/",
+            f"gid={6516546541651}")
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()['msg'], '分组不存在')
 
         response = self.client.get(
             "/subscribe/group/members/",
