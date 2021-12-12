@@ -24,6 +24,9 @@ class SearchTestCase(TestCase):  # 检测搜索功能是否可以使用
     def test_search_function_work(self):  # 检测是否能正确返回搜索结果
         c = Client()
         c.login(username='test_user', password='12345678')
+        response = c.get('/subscribe/search/', {'search_name': ''})
+        self.assertDictEqual(response.json(), {'code': 200,'data': []})        
+
         response = c.get('/subscribe/search/', {'search_name': 'vac47'})
         self.assertEqual(response.json()["data"][0]["mid"], 3985768)        
 
