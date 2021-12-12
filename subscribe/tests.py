@@ -1,5 +1,6 @@
 from django.test import Client
 from django.test import TestCase
+from django.core.exceptions import ObjectDoesNotExist, BadRequest
 
 from account.models import Userinfo
 from . import models
@@ -7,6 +8,12 @@ from . import models
 
 # Create your tests here.
 
+class Login_Required_TestCase(TestCase):  # 检测Login_Required功能是否可以使用
+    def test_login_required(self):
+        c = Client()
+        response = c.get('/subscribe/search/', {'search_name': 'vac47'})
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()['msg'], "未登录")
 
 class SearchTestCase(TestCase):  # 检测搜索功能是否可以使用
     def setUp(self):
@@ -14,12 +21,15 @@ class SearchTestCase(TestCase):  # 检测搜索功能是否可以使用
             username='test_user',
             password='12345678',
             email='test@test.test')
-
+    
     def test_search_function_work(self):  # 检测是否能正确返回搜索结果
         c = Client()
         c.login(username='test_user', password='12345678')
+        response = c.get('/subscribe/search/', {'search_name': ''})
+        self.assertDictEqual(response.json(), {'code': 200,'data': []})        
+
         response = c.get('/subscribe/search/', {'search_name': 'vac47'})
-        self.assertEqual(response.json()["data"][0]["mid"], 3985768)
+        self.assertEqual(response.json()["data"][0]["mid"], 3985768)        
 
 
 class SubscribeTestCase(TestCase):  # 检测列表管理功能
@@ -38,6 +48,15 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
         self.assertEqual(response.json()['data'][0]['count'], 0)
 
         default_group = response.json()['data'][0]['gid']
+        #订阅不存在的Up主
+        response = self.client.post(
+            "/subscribe/subscribe/",
+            {
+                'mid': 416622555555555817,
+                'gid': default_group
+            })
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()['msg'], "添加的up主不存在或不符合要求")
 
         response = self.client.post(
             "/subscribe/subscribe/",
@@ -58,6 +77,16 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
         self.assertEqual(json_body['data']['group_name'], models.DEFAULT_GROUP_NAME)
         self.assertEqual(json_body['data']['data'][0]['mid'], 416622817)
         self.assertEqual(json_body['data']['data'][0]['name'], '步玎Pudding')
+
+        #更改默认分组名
+        response = self.client.post(
+            "/subscribe/group/update/",
+            {
+                'gid': default_group,
+                'group_name': 'new_group2'
+            })
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()['msg'], '默认分组无法改名')
 
         response = self.client.post(
             "/subscribe/group/add/",

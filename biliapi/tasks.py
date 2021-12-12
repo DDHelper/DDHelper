@@ -216,7 +216,10 @@ def get_data_if_valid(rsp, fallback_msg="unknown"):
     if rsp['code'] == 0:
         return rsp['data'], None
     else:
-        return None, rsp['msg']
+        if 'message' in rsp:
+            return None, rsp['message']
+        else:
+            return None, rsp['msg']
 
 
 # noinspection PyTypeChecker
