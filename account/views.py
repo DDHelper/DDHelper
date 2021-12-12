@@ -20,6 +20,7 @@ REGISTER_EMAIL = 'REGISTER_EMAIL'
 REGISTER_SEND_PIN_TIME = 'REGISTER_SEND_PIN_TIME'
 REGISTER_PIN_VERIFY_RETIES = 'REGISTER_PIN_VERIFY_RETIES'
 REGISTER_PIN_VERIFY_MAX_RETIES = 10
+REGISTER_PIN_TIME_OUT = 60
 
 
 @require_POST
@@ -171,7 +172,7 @@ def send_pin(request):
         if not check_pin_timeout(request):
             return JsonResponse({
                 'code': 400,
-                'msg': '重新发送验证码前请等待60秒'
+                'msg': f'重新发送验证码前请等待{REGISTER_PIN_TIME_OUT}秒'
             }, status=400)
     except KeyError:
         pass
@@ -207,7 +208,7 @@ def check_pin_timeout(request):
     :param request:
     :return:
     """
-    timeout = (time.time() - request.session[REGISTER_SEND_PIN_TIME]) > 60
+    timeout = (time.time() - request.session[REGISTER_SEND_PIN_TIME]) > REGISTER_PIN_TIME_OUT
     if timeout:
         clear_pin_info(request)
     return timeout
