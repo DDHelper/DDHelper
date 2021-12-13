@@ -89,7 +89,7 @@ class MemberGroup(models.Model):
         """
         try:
             member = SubscribeMember.objects.get(mid=mid)
-            return member.membergroup_set.filter(user=aid).exist()
+            return member.membergroup_set.filter(user=aid).exists()
         except SubscribeMember.DoesNotExist:
             return False
 
