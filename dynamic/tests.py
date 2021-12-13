@@ -1,3 +1,5 @@
+import time
+
 from django.test import TestCase
 from django.utils import timezone
 import pytz
@@ -9,8 +11,21 @@ from . import tasks
 from .models import DynamicSyncInfo
 
 from subscribe.models import SubscribeMember, MemberGroup
+from io import StringIO
+from django.core.management import call_command
 
 CST_TIME_ZONE = pytz.timezone("Asia/Shanghai")
+
+
+class SyncBeatTest(TestCase):
+    def test_command_output(self):
+        """
+        测试sync_beat指令
+        :return:
+        """
+        out = StringIO()
+        call_command('sync_beat', stdout=out)
+        self.assertIn('成功调用', out.getvalue())
 
 
 class ModelTest(TestCase):
@@ -99,7 +114,16 @@ class DsyncTest(TestCase):
         self.assertEqual(json['data']['has_more'], True)
         self.assertEqual(json['data']['data'][0]['dynamic_id'], offset)
 
-        tasks.call_full_sync()
+        tasks.call_full_sync(min_interval=3600)
+
+        sync_info = DynamicSyncInfo.get_latest()
+        self.assertNotEqual(sync_info, None)
+        self.assertEqual(sync_info.finish(), True)
+        self.assertEqual(sync_info.total_tasks.count(), 0)
+        self.assertEqual(sync_info.success_tasks.count(), 0)
+
+        time.sleep(1)
+        tasks.call_full_sync(min_interval=0)
 
         sync_info = DynamicSyncInfo.get_latest()
         self.assertNotEqual(sync_info, None)

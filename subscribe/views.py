@@ -1,4 +1,5 @@
-from django.contrib.auth.decorators import login_required
+from DDHelper.util import load_params
+from account.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, BadRequest
 from django.db.models import Count
 from django.http import QueryDict
@@ -31,10 +32,8 @@ def search(request):
      - raw          object   必须     原始查询结果
     code	integer	必须
     """
-    try:
+    with load_params():
         name = request.GET['search_name']
-    except KeyError:
-        raise BadRequest()
 
     if len(name) == 0:
         return JsonResponse({
@@ -87,12 +86,11 @@ def group_members(request):
     # URL形式传入需要切换的分组名
     # 传入gid，若无gid传入则显示默认全部分组
     # 传回显示分组的用户信息以及分组列表
-    try:
+    with load_params():
         gid = int(request.GET.get('gid', 0))
         page = int(request.GET.get('page', 0))
         size = int(request.GET.get('size', 20))
-    except KeyError or ValueError:
-        raise BadRequest()
+
     group = MemberGroup.get_group(aid=request.user.uid, gid=gid)
     if group is not None:
         members = group.members.all()
@@ -124,11 +122,10 @@ def group_members(request):
 def subscribe(request):
     # POST形式提交需要关注的up主的mid以及需要加入的分组的gid(以list形式)
     # 返回是否关注成功的结果result(success/fail)
-    try:
+    with load_params():
         mid = int(request.POST['mid'])  # 需要关注的对象，以mid传递
         groups = [int(gid) for gid in request.POST.getlist('gid')]
-    except KeyError or ValueError:  # 需要关注的对象还不在Member中，尝试加入
-        raise BadRequest()
+
     if not SubscribeMember.objects.filter(mid=mid).exists():
         if not add_new_member(mid):
             return JsonResponse({
@@ -144,10 +141,9 @@ def subscribe(request):
 def add_group(request):
     # POST提交新增分组的名称group_name
     # 返回是否关注成功的结果result(success/fail)
-    try:
+    with load_params():
         group_name = request.POST['group_name']
-    except KeyError:
-        raise BadRequest()
+
     group, create = MemberGroup.objects.get_or_create(user_id=request.user.uid,
                                                       group_name=group_name)
     return JsonResponse({
@@ -168,11 +164,9 @@ def update_group(request):
     :param request:
     :return:
     """
-    try:
+    with load_params():
         gid = int(request.POST['gid'])
         group_name = request.POST.get('group_name')
-    except KeyError or ValueError:
-        raise BadRequest()
 
     group = MemberGroup.get_group(aid=request.user.uid, gid=gid)
     if group is not None:
@@ -206,18 +200,17 @@ def update_group(request):
 @require_http_methods(['DELETE'])
 @login_required
 def delete_group(request):
-    try:
+    with load_params():
         body = QueryDict(request.body.decode("utf-8"),encoding="utf-8")
         gid = int(body['gid'])
-    except KeyError or ValueError:
-        raise BadRequest()
+
     group = MemberGroup.get_group(aid=request.user.uid, gid=gid)
     if group is not None:
         if group.group_name == models.DEFAULT_GROUP_NAME:
             return JsonResponse({
                 'code': 403,
                 'msg': "默认分组无法被删除"
-            })
+            }, status=403)
         group.delete()
         return JsonResponse({
             'code': 200
@@ -237,13 +230,11 @@ def member_move(request):
     :param request:
     :return:
     """
-    try:
+    with load_params():
         mid_list = [int(mid) for mid in request.POST.getlist('mid')]
         old_group = int(request.POST['old_group'])
         new_group = int(request.POST['new_group'])
         remove_old = request.POST.get('remove_old', 1)  # 是否从旧分组里删除
-    except KeyError or ValueError:
-        raise BadRequest()
 
     old_group = MemberGroup.get_group(aid=request.user.uid, gid=old_group)
     new_group = MemberGroup.get_group(aid=request.user.uid, gid=new_group)

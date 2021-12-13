@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load tz %}
+{% block content %}
+{% timezone "Asia/Shanghai" %}
+    <h2>Dynamic Sync Info</h2>
+    <ul>
+        <li><a href="latest/">latest</a></li>
+        {% for dsi in object_list %}
+        <li><a href="{{dsi.sid}}/">{{ dsi.sid }}</a>    完成状态：{{dsi.finish}}/{{dsi.failed_tasks.count}}     耗时：{{dsi.time_cost}}</li>
+        {% endfor %}
+    </ul>
+{% endtimezone %}
+{% endblock %}

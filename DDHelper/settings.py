@@ -33,7 +33,10 @@ CELERY_RESULT_BACKEND = 'django-db'
 CELERY_TASK_SERIALIZER = 'json'
 
 CELERY_BEAT_SCHEDULE = {
-
+    "dynamic_full_sync": {
+        'task': 'dynamic.tasks.call_full_sync',
+        'schedule': 300.0,
+    }
 }
 
 CELERY_TASK_ROUTES = ([
@@ -46,6 +49,10 @@ PROXY_POOL = os.environ.get('PROXY_POOL', 'http://edrows.top:5555/random')
 if TESTING:
     PROXY_POOL = None
     CELERY_TASK_ALWAYS_EAGER = True
+
+
+# 动态同步时最小同步间隔
+DYNAMIC_SYNC_MEMBER_MIN_INTERVAL = 60*30
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-ftlcjkddikq@s5k*7+i4h-b(r%g6po%1cd2h40$uvz7cafhatc')
@@ -77,7 +84,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -88,7 +95,7 @@ ROOT_URLCONF = 'DDHelper.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -125,6 +132,8 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', None)
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', None)
 EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', None) == 'True'
 PIN_EMAIL = os.environ.get('PIN_EMAIL', None)
+
+EMAIL_FAIL_SILENTLY = TESTING
 
 AUTH_USER_MODEL = 'account.Userinfo'
 

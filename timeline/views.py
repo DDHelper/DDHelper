@@ -1,7 +1,7 @@
-from django.contrib.auth.decorators import login_required
 import json
 from timeline.models import TimelineEntry
 from subscribe.models import MemberGroup
+from account.decorators import login_required
 import re
 import datetime
 from django.http.response import JsonResponse
