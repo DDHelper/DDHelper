@@ -7,7 +7,7 @@ omit =
     DDHelper/wsgi.py
     DDHelper/asgi.py
     biliapi/admin.py
-    biliapi/app.py
+    biliapi/apps.py
     biliapi/models.py
     biliapi/views.py
     dynamic/testdata/import_test_members.py
