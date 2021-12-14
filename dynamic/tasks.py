@@ -9,6 +9,7 @@ from . import models
 from .models import SyncTask
 from DDHelper import settings
 from subscribe.models import SubscribeMember
+from biliapi import tasks as biliapi
 
 logger: logging.Logger = get_task_logger(__name__)
 
@@ -165,3 +166,21 @@ def sync_block_fail(request, exc, traceback, sid):
     sync_info.failed_tasks.add(task)
     sync_info.save()
 
+
+@shared_task
+def direct_sync_dynamic(dynamic_id):
+    rsp = biliapi.dynamic_detail(dynamic_id)
+    data, msg = biliapi.get_data_if_valid(rsp)
+    if data:
+        card = data['card']
+        member_profile = card['desc']['user_profile']['info']
+        member, _ = SubscribeMember.objects.get_or_create(
+            mid=member_profile['uid'],
+            defaults={
+                'name': member_profile['uname'],
+                'face': member_profile['face']
+            })
+        dy = dsync.parse_dynamic_card(data['card'], member=member)
+        dy.save()
+    else:
+        raise Exception(f"同步动态{dynamic_id}失败，{msg}")

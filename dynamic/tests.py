@@ -8,7 +8,7 @@ from account.models import Userinfo
 from . import models
 from . import dsync
 from . import tasks
-from .models import DynamicSyncInfo
+from .models import DynamicSyncInfo, Dynamic
 
 from subscribe.models import SubscribeMember, MemberGroup
 from io import StringIO
@@ -131,5 +131,9 @@ class DsyncTest(TestCase):
         self.assertEqual(sync_info.total_tasks.count(), 1)
         self.assertEqual(sync_info.success_tasks.count(), 1)
 
-
+    def test_direct_add(self):
+        tasks.direct_sync_dynamic(604029782310941867)
+        dy = Dynamic.objects.filter(pk=604029782310941867).first()
+        self.assertNotEqual(dy, None)
+        self.assertEqual(dy.raw['desc']['uid'], 1473830)
 
