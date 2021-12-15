@@ -244,6 +244,19 @@ def space_history(host_uid: int, offset_dynamic_id: int):
     )
 
 
+@shared_task()
+@api_retry
+@clear_proxy_info_on_error
+@with_default_wait
+def dynamic_detail(dynamic_id):
+    return call_api(
+        "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/get_dynamic_detail",
+        params={
+            "dynamic_id": dynamic_id
+        }
+    )
+
+
 # noinspection PyTypeChecker
 @shared_task()
 @api_retry
@@ -325,7 +338,8 @@ def search_user_id(mid: int):
 
 
 if __name__ == '__main__':
+    import json
     # print(client_info())
-    print(space_history(557839, 0))
+    print(json.dumps(space_history(557839, 0), indent=2, ensure_ascii=False))
     # print(user_profile(489391680))
 
