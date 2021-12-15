@@ -101,14 +101,14 @@ class DsyncTest(TestCase):
             })
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get("/dynamic/list/")
+        response = self.client.get("/dynamic/list")
         self.assertEqual(response.status_code, 200)
         json = response.json()
         self.assertEqual(json['data']['has_more'], True)
         self.assertEqual(len(json['data']['data']), 20)
         offset = json['data']['offset']
 
-        response = self.client.get("/dynamic/list/", {'offset': offset})
+        response = self.client.get("/dynamic/list", {'offset': offset})
         self.assertEqual(response.status_code, 200)
         json = response.json()
         self.assertEqual(json['data']['has_more'], True)

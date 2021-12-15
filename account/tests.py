@@ -12,7 +12,7 @@ from DDHelper import settings
 class RegisterTest(TestCase):
     def test_register(self):
         response = self.client.get(
-            "/account/verify_pin/",
+            "/account/verify_pin",
             {
                 "email": "test@test.test",
                 "pin": 0
@@ -57,7 +57,7 @@ class RegisterTest(TestCase):
         self.assertEqual(response.json()['msg'], "重新发送验证码前请等待60秒")
 
         response = self.client.get(
-            "/account/verify_pin/",
+            "/account/verify_pin",
             {
                 "email": "test@test.test",
                 "pin": 0
@@ -67,7 +67,7 @@ class RegisterTest(TestCase):
         self.assertEqual(response.json()['match'], False)
 
         response = self.client.get(
-            "/account/verify_pin/",
+            "/account/verify_pin",
             {
                 "email": "test@test.test",
                 "pin": self.client.session[views.REGISTER_PIN]
@@ -77,7 +77,7 @@ class RegisterTest(TestCase):
         self.assertEqual(response.json()['match'], True)
 
         response = self.client.get(
-            "/account/verify_pin/",
+            "/account/verify_pin",
             {
                 "email": "test2@test.test",
                 "pin": self.client.session[views.REGISTER_PIN]
@@ -170,7 +170,7 @@ class RegisterTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get(
-            "/account/verify_pin/",
+            "/account/verify_pin",
             {
                 "email": "test2@test.test",
                 "pin": self.client.session[views.REGISTER_PIN]
@@ -255,7 +255,7 @@ class LoginLogoutTest(TestCase):
             }
         )
 
-        response = self.client.get("/account/user_info/")
+        response = self.client.get("/account/user_info")
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(
             response.json(),
@@ -269,10 +269,10 @@ class LoginLogoutTest(TestCase):
             }
         )
 
-        response = self.client.get("/account/logout/")
+        response = self.client.post("/account/logout/")
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get("/account/user_info/")
+        response = self.client.get("/account/user_info")
         self.assertEqual(response.status_code, 403)
 
 
