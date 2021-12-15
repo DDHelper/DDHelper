@@ -1,24 +1,43 @@
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
+
+from DDHelper.util import load_params
+from account.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.core.exceptions import ObjectDoesNotExist, BadRequest
 from django.views.decorators.http import require_GET, require_POST
+from django.views.generic import ListView, DetailView
 
 from subscribe.models import MemberGroup
-from .models import Dynamic
+from .models import Dynamic, DynamicSyncInfo
 
 # Create your views here.
+
+
+class DynamicSyncInfoListView(ListView):
+    paginate_by = 20
+    queryset = DynamicSyncInfo.objects.order_by('-sid')
+    context_object_name = 'dynamic_sync_info'
+
+
+class DynamicSyncInfoDetailView(DetailView):
+    queryset = DynamicSyncInfo.objects.all()
+    context_object_name = 'dynamic_sync_info'
+
+
+class DynamicSyncInfoLatestDetailView(DetailView):
+    template_name = 'dynamic/dynamicsyncinfo_detail.html'
+
+    def get_object(self, queryset=None):
+        return DynamicSyncInfo.get_latest()
 
 
 @require_GET
 @login_required
 def list_dynamic(request):
-    try:
+    with load_params():
         gid = int(request.GET.get('gid', 0))
         offset = int(request.GET.get('offset', 0))
         size = int(request.GET.get('size', 20))
-    except KeyError or ValueError:  # 需要关注的对象还不在Member中，尝试加入
-        raise BadRequest()
 
     group = MemberGroup.get_group(aid=request.user.uid, gid=gid)
     if group is not None:

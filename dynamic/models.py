@@ -54,6 +54,8 @@ class DynamicSyncInfo(models.Model):
     sync_start_time = models.DateTimeField(auto_now_add=True)
     sync_update_time = models.DateTimeField(auto_now=True)
 
+    sync_msg = models.TextField(null=True)
+
     total_tasks = models.ManyToManyField(SyncTask, related_name="info_total_tasks")
     success_tasks = models.ManyToManyField(SyncTask, related_name="info_success_tasks")
     failed_tasks = models.ManyToManyField(SyncTask, related_name="info_failed_tasks")

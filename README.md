@@ -1,6 +1,6 @@
 # DDHelper
 
-[![Django CI](https://github.com/DDHelper/DDHelper/actions/workflows/django.yml/badge.svg)](https://github.com/DDHelper/DDHelper/actions/workflows/django.yml)
+[![Django CI](https://github.com/DDHelper/DDHelper/actions/workflows/django.yml/badge.svg)](https://github.com/DDHelper/DDHelper/actions/workflows/django.yml)  [![Docker Image CI](https://github.com/DDHelper/DDHelper/actions/workflows/docker-image.yml/badge.svg)](https://github.com/DDHelper/DDHelper/actions/workflows/docker-image.yml)
 
 这是DDHelper的后端仓库
 

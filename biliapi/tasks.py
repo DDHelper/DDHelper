@@ -30,11 +30,6 @@ GOOD_PROXY = None
 GOOD_PROXY_CALLS = 0
 
 
-class BlockedException(Exception):
-    def __init__(self, msg):
-        super(BlockedException, self).__init__(msg)
-
-
 def get_random_proxy(retry=0, check_proxy=True):
     """
     get random proxy from proxypool
@@ -45,6 +40,7 @@ def get_random_proxy(retry=0, check_proxy=True):
         if GOOD_PROXY_CALLS < 20:
             return GOOD_PROXY
         else:
+            logger.info(f"超过最大调用次数, 重置 {GOOD_PROXY}")
             GOOD_PROXY = None
             GOOD_PROXY_CALLS = 0
 
@@ -55,6 +51,7 @@ def get_random_proxy(retry=0, check_proxy=True):
         if check_proxy:
             rsp = client_info(proxies)
             if rsp:
+                logger.info(f"使用代理: {proxies}")
                 GOOD_PROXY = proxies
                 GOOD_PROXY_CALLS = 0
                 return proxies
@@ -92,6 +89,7 @@ def _clear_proxy_info():
         global GOOD_PROXY, GOOD_PROXY_CALLS
         GOOD_PROXY = None
         GOOD_PROXY_CALLS = 0
+        logger.info(f"发生错误, 重置 {GOOD_PROXY} e: {e}")
         raise e
 
 
@@ -152,24 +150,33 @@ def set_blocked():
     global GOOD_PROXY, GOOD_PROXY_CALLS
     GOOD_PROXY = None
     GOOD_PROXY_CALLS = 0
+    logger.info(f"代理被拦截, 重置 {GOOD_PROXY}")
 
     from django.utils import timezone
     import pytz
     BLOCKED_START_TIME = timezone.now().astimezone(pytz.timezone("Asia/Shanghai"))
-    print(f"[{BLOCKED_START_TIME}] 当前机器或ip可能被b站拦截，已停止所有请求，请管理员手动处理")
-    # 并不能停止任务队列
-    # import celery.worker.control as control
-    # control.disable_events()
-    # print(f"已停止任务队列")
+    logger.info(f"[{BLOCKED_START_TIME}] 当前机器或ip可能被b站拦截，已停止所有请求，请管理员手动处理")
 
 
-def check_security():
+def api_retry(func):
     """
-    在尝试发出请求前做安全检测，默认延迟一段时间，并在被拦截时停止发送新的请求
+    允许三次重试
+    :param func:
     :return:
     """
-    if BLOCKED:
-        raise BlockedException(f"[{BLOCKED_START_TIME}] 当前机器或ip可能被b站拦截，已停止所有请求，请管理员手动处理")
+    @wraps(func)
+    def call_func(*args, **kwargs):
+        retry = 0
+        while retry < 4:
+            try:
+                result = func(*args, **kwargs)
+                if result is None:
+                    retry += 1
+                else:
+                    return result
+            except Exception:
+                retry += 1
+    return call_func
 
 
 # noinspection PyTypeChecker
@@ -187,6 +194,11 @@ def call_api(url, params=None, headers=None, timeout=DEFAULT_TIMEOUT, **kwargs):
     )
     check_response(rsp)
     if rsp.status_code != 200:
+        try:
+            body = rsp.json()
+            logger.warning(f"Bad Api Call[{rsp.status_code}]: {body}")
+        except Exception:
+            logger.warning(f"Bad Api Call[{rsp.status_code}]: None")
         return None
     else:
         return rsp.json()
@@ -204,11 +216,15 @@ def get_data_if_valid(rsp, fallback_msg="unknown"):
     if rsp['code'] == 0:
         return rsp['data'], None
     else:
-        return None, rsp['msg']
+        if 'message' in rsp:
+            return None, rsp['message']
+        else:
+            return None, rsp['msg']
 
 
 # noinspection PyTypeChecker
 @shared_task()
+@api_retry
 @clear_proxy_info_on_error
 @with_default_wait
 def space_history(host_uid: int, offset_dynamic_id: int):
@@ -228,8 +244,22 @@ def space_history(host_uid: int, offset_dynamic_id: int):
     )
 
 
+@shared_task()
+@api_retry
+@clear_proxy_info_on_error
+@with_default_wait
+def dynamic_detail(dynamic_id):
+    return call_api(
+        "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/get_dynamic_detail",
+        params={
+            "dynamic_id": dynamic_id
+        }
+    )
+
+
 # noinspection PyTypeChecker
 @shared_task()
+@api_retry
 @clear_proxy_info_on_error
 @with_default_wait
 def user_profile(mid: int):
@@ -308,7 +338,8 @@ def search_user_id(mid: int):
 
 
 if __name__ == '__main__':
+    import json
     # print(client_info())
-    print(space_history(557839, 0))
+    print(json.dumps(space_history(557839, 0), indent=2, ensure_ascii=False))
     # print(user_profile(489391680))
 

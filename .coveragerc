@@ -6,6 +6,10 @@ omit =
     DDHelper/settings.py
     DDHelper/wsgi.py
     DDHelper/asgi.py
+    biliapi/admin.py
+    biliapi/apps.py
+    biliapi/models.py
+    biliapi/views.py
     dynamic/testdata/import_test_members.py
 [report]
 show_missing = True

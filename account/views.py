@@ -2,9 +2,11 @@ import random
 import time
 
 import django.contrib.auth as auth
-from django.contrib.auth.decorators import login_required
+
+from DDHelper.util import load_params
+from .decorators import login_required
 from django.core.exceptions import BadRequest
-from django.core.mail import send_mail
+from django.core import mail
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.db.models import Q
@@ -18,6 +20,7 @@ REGISTER_EMAIL = 'REGISTER_EMAIL'
 REGISTER_SEND_PIN_TIME = 'REGISTER_SEND_PIN_TIME'
 REGISTER_PIN_VERIFY_RETIES = 'REGISTER_PIN_VERIFY_RETIES'
 REGISTER_PIN_VERIFY_MAX_RETIES = 10
+REGISTER_PIN_TIME_OUT = 60
 
 
 @require_POST
@@ -41,11 +44,9 @@ def login(request):
     如果登录成功，返回用户信息，通过Set-Cookies返回认证信息
     如果登录失败，code设置为403，不返回data
     """
-    try:
+    with load_params():
         username = request.POST['username']
         password = request.POST['password']
-    except KeyError:
-        raise BadRequest
 
     user = auth.authenticate(username=username,
                              password=password)
@@ -63,6 +64,14 @@ def login(request):
             'code': 403,
             'msg': "用户名或密码错误"
         }, status=403)
+
+
+@login_required
+@require_GET
+@csrf_exempt
+def logout(request):
+    auth.logout(request)
+    return JsonResponse({'code': 200})
 
 
 @login_required
@@ -100,13 +109,11 @@ def register(request):
     注册一个账号。
     如果失败，code设置为403，msg为失败的原因
     """
-    try:
+    with load_params():
         username = request.POST['username']
         password = request.POST['password']
         email = request.POST['email']
         pin = int(request.POST['pin'])
-    except KeyError or ValueError:
-        raise BadRequest()
 
     try:
         if check_pin_timeout(request):
@@ -165,28 +172,33 @@ def send_pin(request):
         if not check_pin_timeout(request):
             return JsonResponse({
                 'code': 400,
-                'msg': '重新发送验证码前请等待60秒'
+                'msg': f'重新发送验证码前请等待{REGISTER_PIN_TIME_OUT}秒'
             }, status=400)
     except KeyError:
         pass
 
-    try:
+    with load_params():
         email = request.POST['email']
-    except KeyError:
-        raise BadRequest()
 
     pin = random.randint(100000, 999999)
     request.session[REGISTER_SEND_PIN_TIME] = time.time()
     request.session[REGISTER_EMAIL] = email
     request.session[REGISTER_PIN] = pin
     request.session[REGISTER_PIN_VERIFY_RETIES] = 0
-    send_mail(
-        'DDHelper注册验证码',
-        f"您用于注册DDHelper账号的验证码为：{pin}",
-        settings.PIN_EMAIL,
-        [email],
-        fail_silently=True,
-    )
+    try:
+        mail.send_mail(
+            'DDHelper注册验证码',
+            f"您用于注册DDHelper账号的验证码为：{pin}",
+            settings.PIN_EMAIL,
+            [email],
+            fail_silently=settings.EMAIL_FAIL_SILENTLY,
+        )
+    except Exception as e:
+        return JsonResponse({
+            'code': 400,
+            'msg': '邮件发送失败，请重试',
+            'exception': str(e) if settings.DEBUG else ""
+        }, status=400)
     return JsonResponse({'code': 200, 'msg': ''})
 
 
@@ -196,7 +208,7 @@ def check_pin_timeout(request):
     :param request:
     :return:
     """
-    timeout = (time.time() - request.session[REGISTER_SEND_PIN_TIME]) > 60
+    timeout = (time.time() - request.session[REGISTER_SEND_PIN_TIME]) > REGISTER_PIN_TIME_OUT
     if timeout:
         clear_pin_info(request)
     return timeout
@@ -251,11 +263,9 @@ def verify_pin(request):
     如果验证成功，正常返回
     如果验证失败，code设置为403，msg为失败的原因
     """
-    try:
+    with load_params():
         email = request.GET['email']
         pin = int(request.GET['pin'])
-    except KeyError or ValueError:
-        raise BadRequest()
 
     try:
         if check_pin_timeout(request):

@@ -7,18 +7,21 @@ import logging
 from . import dsync
 from . import models
 from .models import SyncTask
+from DDHelper import settings
 from subscribe.models import SubscribeMember
+from biliapi import tasks as biliapi
 
 logger: logging.Logger = get_task_logger(__name__)
 
 
 @shared_task
-def call_full_sync(chunk_size=5):
+def call_full_sync(chunk_size=5, min_interval=settings.DYNAMIC_SYNC_MEMBER_MIN_INTERVAL):
     """
     请求一次全动态同步。
     同步耗时可以估计为：
     成员数*每个成员预计时间（0.5s） / 有效worker数量
     :param chunk_size: 每一块请求的成员数量
+    :param min_interval
     :return:
     """
     sync_info = models.DynamicSyncInfo.get_latest()
@@ -29,30 +32,31 @@ def call_full_sync(chunk_size=5):
         if sync_info.finish():
             # 之前的任务已经完成了
             should_update = True
-        elif sync_info.sync_start_time.timestamp() - timezone.now().timestamp() > 7200:
+        elif timezone.now().timestamp() - sync_info.sync_start_time.timestamp() > 7200:
             # 之前的任务已经超过两小时了
             should_update = True
-        elif sync_info.sync_update_time.timestamp() - timezone.now().timestamp() > 600:
-            # 已经有10分钟没有收到新的任务信息了
+        elif timezone.now().timestamp() - sync_info.sync_update_time.timestamp() > 300:
+            # 已经有5分钟没有收到新的任务信息了
             should_update = True
     if should_update:
         sync_info = models.DynamicSyncInfo.objects.create()
-
-        all_mid = list(models.DynamicMember.objects.values_list("mid_id", flat=True))
+        time_mark = timezone.now()-timezone.timedelta(seconds=min_interval)
+        all_mid = list(models.DynamicMember.objects
+                       .filter(last_dynamic_update__lt=time_mark)
+                       .values_list("mid_id", flat=True))
         full_block = len(all_mid) // chunk_size
         half_block = len(all_mid) % chunk_size
         blocks = [all_mid[i * chunk_size:(i + 1) * chunk_size] for i in range(full_block)]
         if half_block != 0:
             blocks.append(all_mid[full_block * chunk_size:])
-
+        sync_info.sync_msg = f"预计同步数量：{len(all_mid)}  预计任务块数量：{len(blocks)}"
         sync_info.save()
 
         tasks = []
         for block in blocks:
-            result = sync_block.s(sync_info.sid, block).apply_async(
-                link_error=sync_block_fail.s(sync_info.sid))
+            result = sync_block.s(sync_info.sid, block, min_interval=min_interval).apply_async(
+                link_error=sync_block_fail.s(sync_info.sid), countdown=5)
             sync_info.total_tasks.add(SyncTask.objects.get_or_create(uuid=result.id)[0])
-        sync_info.save()
         logger.info(f"执行全动态同步，发出{len(tasks)}个任务")
 
 
@@ -84,7 +88,7 @@ def add_member(mid: int, initial_sync=True, create_subscribe_member_in_place=Fal
 
 
 @shared_task
-def sync_member(mid: int, min_interval=600, force_update=False):
+def sync_member(mid: int, min_interval=settings.DYNAMIC_SYNC_MEMBER_MIN_INTERVAL, force_update=False):
     """
     同步某个成员最近的动态
     :param mid: 成员
@@ -129,7 +133,7 @@ def sync_member(mid: int, min_interval=600, force_update=False):
 
 
 @shared_task(bind=True)
-def sync_block(self, sid, mids, min_interval=600, force_update=False):
+def sync_block(self, sid, mids, min_interval=settings.DYNAMIC_SYNC_MEMBER_MIN_INTERVAL, force_update=False):
     """
     一次性同步一个列表中的所有成员
     :param self:
@@ -144,7 +148,6 @@ def sync_block(self, sid, mids, min_interval=600, force_update=False):
     sync_block_success(self.request.id, sid)
 
 
-@transaction.atomic
 def sync_block_success(uuid, sid):
     sync_info = models.DynamicSyncInfo.objects.get(sid=sid)
     task = SyncTask.objects.get_or_create(uuid=uuid)[0]
@@ -163,3 +166,21 @@ def sync_block_fail(request, exc, traceback, sid):
     sync_info.failed_tasks.add(task)
     sync_info.save()
 
+
+@shared_task
+def direct_sync_dynamic(dynamic_id):
+    rsp = biliapi.dynamic_detail(dynamic_id)
+    data, msg = biliapi.get_data_if_valid(rsp)
+    if data:
+        card = data['card']
+        member_profile = card['desc']['user_profile']['info']
+        member, _ = SubscribeMember.objects.get_or_create(
+            mid=member_profile['uid'],
+            defaults={
+                'name': member_profile['uname'],
+                'face': member_profile['face']
+            })
+        dy = dsync.parse_dynamic_card(data['card'], member=member)
+        dy.save()
+    else:
+        raise Exception(f"同步动态{dynamic_id}失败，{msg}")
