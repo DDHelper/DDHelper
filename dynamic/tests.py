@@ -91,7 +91,7 @@ class DsyncTest(TestCase):
         self.assertGreater(models.Dynamic.objects.count(), 0)
 
     def test_task(self):
-        response = self.client.get("/subscribe/group_list/")
+        response = self.client.get("/subscribe/group_list")
         default_group = response.json()['data'][0]['gid']
         response = self.client.post(
             "/subscribe/subscribe/",
