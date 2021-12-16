@@ -201,8 +201,19 @@ def do_process(dynamic_id):
         dynamic_text = card['item']['content']
     elif dynamic_type == 2:  # 图片动态
         dynamic_text = card['item']['description']
-    elif dynamic_type == 8:  # 视频动态
-        dynamic_text = card['dynamic']
+    elif dynamic_type == 8:  # 视频动态则直接判断为投稿新视频
+        dynamic_text = card['title']
+        TimelineEntry.objects.update_or_create(
+            dynamic=origin_dynamic,
+            defaults=dict(
+                event_time=origin_dynamic.timestamp,
+                type='RE',
+                text={
+                    'extract': f'投稿了{dynamic_text}'
+                }
+            )
+        )
+        return
     else:  # 其他类型的动态不太可能是时效性信息，直接舍弃
         return
 
