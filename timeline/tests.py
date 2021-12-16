@@ -60,20 +60,10 @@ class TextFunctionTestcase(TestCase):  # 测试文本的提取、日期的提取
             self.assertEqual(find_time_in_text(text), test_ans_list[index])
 
 
-# class TimelineTestCase(TestCase):
-#     def setUp(self):
-#         # TODO: 对测试所用的动态建立对应对象并process为timeline对象并进行测试
+class TimelineTestCase(TestCase):
+    def setUp(self):
+        # TODO: 对测试所用的动态建立对应对象并process为timeline对象并进行测试
+        pass
 
-#         self.dynamic_id_list=[]
-#         self.dynamic_time=[]
-#         self.dynamic_type=[]
-#         process_result = process_timeline(dynamic_id)
-#         return self.dynamic_list
-
-#     def test_TimelineView(self):
-
-#     def test_DynamicProcess(self):
-#         for index, dynamic_id in enumerate(self.dynamic_id_list):
-            
-#             self.assertEqual(process_result.event_time, self.dynamic_time[index])
-#             self.assertEqual(process_result.type, self.dynamic_type[index])
+    def test_dynamic_process(self):
+        pass

@@ -1,10 +1,12 @@
-from celery import shared_task
-from celery.utils.log import get_task_logger
-from timeline.models import TimelineEntry
-from dynamic.models import Dynamic
-import re
 import datetime
 import logging
+import re
+
+from celery import shared_task
+from celery.utils.log import get_task_logger
+
+from dynamic.models import Dynamic
+from timeline.models import TimelineEntry, TimelineDynamicProcessInfo
 
 chinese_number = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7,
                   '八': 8, '九': 9, '十': 10, '十一': 11, '十二': 12, '十三': 13,
@@ -20,9 +22,9 @@ def day_of_month(month, year):
     days_of_month = [31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     if month != 2:
         return days_of_month[month - 1]
-    elif year % 4 == 0 and year % 100 != 0:
+    elif year%4 == 0 and year%100 != 0:
         return 29
-    elif year % 100 == 0 and year % 400 == 0:
+    elif year%100 == 0 and year%400 == 0:
         return 29
     else:
         return 28
@@ -38,16 +40,16 @@ def find_day_in_text(text):
     for texts in enumerate(specical_day_template.keys()):  # 检测是否有特殊日期
         if re.search(texts[1], text) is not None:
             result_day = result_day + \
-                specical_day_template[re.search(texts[1], text)[0]]
-            return result_day % day_of_month(
+                         specical_day_template[re.search(texts[1], text)[0]]
+            return result_day%day_of_month(
                 datetime.datetime.now().month,
                 datetime.datetime.now().year)
     for texts in week_day_template:  # 检测星期
         if re.search(texts, text) is not None:
             result_day = (result_day + (chinese_number[
-                re.search(texts, text)[0][-1]] - 1 - datetime.datetime.now
-                ().weekday()) % 7)
-            return result_day % day_of_month(
+                                            re.search(texts, text)[0][-1]] - 1 - datetime.datetime.now
+                                        ().weekday())%7)
+            return result_day%day_of_month(
                 datetime.datetime.now().month,
                 datetime.datetime.now().year)
     for texts in date_day_template:  # 检测具体日期
@@ -164,6 +166,12 @@ def classify_dynamic(dynamic_text):
 
 @shared_task
 def process_timeline(dynamic_id):
+    logger.info(f"开始提取timeline：{dynamic_id}")
+    info = TimelineDynamicProcessInfo.get(dynamic_id)
+    if not info.should_update():
+        logger.info(f"动态{dynamic_id}已处理，跳过")
+        return
+
     origin_dynamic = Dynamic.objects.get(dynamic_id=dynamic_id)
     dynamic_type = origin_dynamic.raw['desc']['type']
     if dynamic_type == 1 or dynamic_type == 4:  # 转发或文字动态
@@ -173,22 +181,24 @@ def process_timeline(dynamic_id):
     elif dynamic_type == 8:  # 视频动态
         dynamic_text = origin_dynamic.raw['card']['dynamic']
     else:  # 其他类型的动态不太可能是时效性信息，直接舍弃
-        return None
+        return
+
     # 先提取时间信息判断是否为时效性动态
+    dynamic_time = None
     try:  # 先检测是否使用了B站已有的直播预约功能,由预约信息中提取时间
-        dynamic_time = find_time_in_appointment(origin_dynamic.raw['display']['a\
-            dd_on_card_info'][0]['reserve_attach_card']['desc_first']['text'])
+        dynamic_time = find_time_in_appointment(
+            origin_dynamic.raw['display']['add_on_card_info'][0]['reserve_attach_card']['desc_first']['text'])
     except KeyError:
         dynamic_time = find_time_in_text(dynamic_text)
     finally:
         if dynamic_time is not None:
-            return TimelineEntry.objects.create(dynamic=origin_dynamic,
-                                                event_time=dynamic_time,
-                                                type=classify_dynamic(
-                                                    dynamic_text),
-                                                text={
-                                                    'extract':
-                                                    extract_from_text(
-                                                        dynamic_text)})
-        else:
-            return None
+            TimelineEntry.objects.update_or_create(dynamic=origin_dynamic,
+                                                   defaults=dict(
+                                                       event_time=dynamic_time,
+                                                       type=classify_dynamic(
+                                                           dynamic_text),
+                                                       text={
+                                                           'extract':
+                                                               extract_from_text(
+                                                                   dynamic_text)}))
+            info.apply_update()
