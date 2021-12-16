@@ -1,9 +1,13 @@
 from django.test import TestCase
 from django.test import Client
+from django.utils import timezone
 import datetime
 from timeline.tasks import extract_from_text, classify_dynamic
 from timeline.tasks import find_time_in_text, process_timeline
 from dynamic.models import Dynamic
+from dynamic.tasks import direct_sync_dynamic
+from timeline.models import TimelineEntry, TimelineDynamicProcessInfo
+from DDHelper.settings import CST_TIME_ZONE
 # Create your tests here.
 
 
@@ -34,6 +38,7 @@ class TextFunctionTestcase(TestCase):  # 测试文本的提取、日期的提取
             self.assertEqual(classify_dynamic(text), test_ans_list[index])
 
     def test_find_time_in_text(self):  # 测试文本时间提取功能
+        now = timezone.now().astimezone(CST_TIME_ZONE)
         test_text_list = [
             '''今天上午10点半直播''',
             '''周二直播''',
@@ -41,39 +46,49 @@ class TextFunctionTestcase(TestCase):  # 测试文本的提取、日期的提取
         ]
         test_ans_list = [
             datetime.datetime(
-                datetime.datetime.now().year,
-                datetime.datetime.now().month,
-                datetime.datetime.now().day,
-                10, 30),
+                now.year,
+                now.month,
+                now.day,
+                10, 30).astimezone(CST_TIME_ZONE),
             datetime.datetime(
-                datetime.datetime.now().year,
-                datetime.datetime.now().month,
-                datetime.datetime.now().day,
-            ) + datetime.timedelta(
-                days=((2 - datetime.datetime.now().weekday() - 1) % 7)
+                now.year,
+                now.month,
+                now.day,
+            ).astimezone(CST_TIME_ZONE) + datetime.timedelta(
+                days=((2 - now.weekday() - 1)%7)
             ),
             datetime.datetime(
-                datetime.datetime.now().year,
-                12, 31, 20, 0),
+                now.year,
+                12, 31, 20, 0).astimezone(CST_TIME_ZONE),
         ]
         for index, text in enumerate(test_text_list):
-            self.assertEqual(find_time_in_text(text), test_ans_list[index])
+            self.assertEqual(find_time_in_text(text, now=now), test_ans_list[index])
 
 
-# class TimelineTestCase(TestCase):
-#     def setUp(self):
-#         # TODO: 对测试所用的动态建立对应对象并process为timeline对象并进行测试
+class TimelineTestCase(TestCase):
+    def setUp(self):
+        # TODO: 对测试所用的动态建立对应对象并process为timeline对象并进行测试
+        pass
 
-#         self.dynamic_id_list=[]
-#         self.dynamic_time=[]
-#         self.dynamic_type=[]
-#         process_result = process_timeline(dynamic_id)
-#         return self.dynamic_list
+    def assertTimelineProcess(self, dynamic_id, event_time=None, text=None, dynamic_type=None, is_none=False):
+        # 同步动态
+        direct_sync_dynamic(dynamic_id)
+        # 处理动态
+        process_timeline(dynamic_id)
 
-#     def test_TimelineView(self):
+        info = TimelineDynamicProcessInfo.get(dynamic_id)
+        self.assertEqual(info.should_update(), False)
+        result: TimelineEntry = TimelineEntry.objects.filter(dynamic_id=dynamic_id).first()
+        # 判断结果
+        if is_none:
+            self.assertIsNone(result)
+            return
+        if event_time:
+            self.assertEqual(result.event_time, event_time)
+        if text:
+            self.assertDictEqual(result.text, text)
+        if dynamic_type:
+            self.assertEqual(result.type, dynamic_type)
 
-#     def test_DynamicProcess(self):
-#         for index, dynamic_id in enumerate(self.dynamic_id_list):
-            
-#             self.assertEqual(process_result.event_time, self.dynamic_time[index])
-#             self.assertEqual(process_result.type, self.dynamic_type[index])
+    def test_dynamic_process(self):
+        self.assertTimelineProcess(604706231073410613, is_none=True)
