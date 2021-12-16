@@ -1,6 +1,7 @@
 import datetime
 import logging
 import re
+import json
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
@@ -171,15 +172,20 @@ def process_timeline(dynamic_id):
     if not info.should_update():
         logger.info(f"动态{dynamic_id}已处理，跳过")
         return
+    do_process(dynamic_id)
+    info.apply_update()
 
+
+def do_process(dynamic_id):
     origin_dynamic = Dynamic.objects.get(dynamic_id=dynamic_id)
     dynamic_type = origin_dynamic.raw['desc']['type']
+    card = json.loads(origin_dynamic.raw['card'])
     if dynamic_type == 1 or dynamic_type == 4:  # 转发或文字动态
-        dynamic_text = origin_dynamic.raw['card']['item']['content']
+        dynamic_text = card['item']['content']
     elif dynamic_type == 2:  # 图片动态
-        dynamic_text = origin_dynamic.raw['card']['item']['description']
+        dynamic_text = card['item']['description']
     elif dynamic_type == 8:  # 视频动态
-        dynamic_text = origin_dynamic.raw['card']['dynamic']
+        dynamic_text = card['dynamic']
     else:  # 其他类型的动态不太可能是时效性信息，直接舍弃
         return
 
@@ -201,4 +207,3 @@ def process_timeline(dynamic_id):
                                                            'extract':
                                                                extract_from_text(
                                                                    dynamic_text)}))
-            info.apply_update()

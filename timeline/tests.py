@@ -4,6 +4,8 @@ import datetime
 from timeline.tasks import extract_from_text, classify_dynamic
 from timeline.tasks import find_time_in_text, process_timeline
 from dynamic.models import Dynamic
+from dynamic.tasks import direct_sync_dynamic
+from timeline.models import TimelineEntry, TimelineDynamicProcessInfo
 # Create your tests here.
 
 
@@ -65,5 +67,25 @@ class TimelineTestCase(TestCase):
         # TODO: 对测试所用的动态建立对应对象并process为timeline对象并进行测试
         pass
 
+    def assertTimelineProcess(self, dynamic_id, event_time=None, text=None, dynamic_type=None, is_none=False):
+        # 同步动态
+        direct_sync_dynamic(dynamic_id)
+        # 处理动态
+        process_timeline(dynamic_id)
+
+        info = TimelineDynamicProcessInfo.get(dynamic_id)
+        self.assertEqual(info.should_update(), False)
+        result: TimelineEntry = TimelineEntry.objects.filter(dynamic_id=dynamic_id).first()
+        # 判断结果
+        if is_none:
+            self.assertIsNone(result)
+            return
+        if event_time:
+            self.assertEqual(result.event_time, event_time)
+        if text:
+            self.assertDictEqual(result.text, text)
+        if dynamic_type:
+            self.assertEqual(result.type, dynamic_type)
+
     def test_dynamic_process(self):
-        pass
+        self.assertTimelineProcess(604706231073410613, is_none=True)

@@ -60,3 +60,15 @@ class TimelineEntry(models.Model):
         choices=EVENT_TYPE,
         default='NT'
     )
+
+    def as_dict(self):
+        return {
+            'dynamic_id': self.dynamic_id,
+            'text': self.text,
+            'event_time': self.event_time,
+            'type': self.type,
+            'raw': self.dynamic.raw
+        }
+
+    def __str__(self):
+        return str(self.as_dict())
