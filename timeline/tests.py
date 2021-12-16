@@ -42,7 +42,7 @@ class TextFunctionTestcase(TestCase):  # 测试文本的提取、日期的提取
         test_text_list = [
             '''今天上午10点半直播''',
             '''周二直播''',
-            '''12月31日20:00直播'''
+            '''12月20日20:00直播'''
         ]
         test_ans_list = [
             datetime.datetime(
@@ -59,17 +59,13 @@ class TextFunctionTestcase(TestCase):  # 测试文本的提取、日期的提取
             ),
             datetime.datetime(
                 now.year,
-                12, 31, 20, 0).astimezone(CST_TIME_ZONE),
+                12, 20, 20, 0).astimezone(CST_TIME_ZONE),
         ]
         for index, text in enumerate(test_text_list):
             self.assertEqual(find_time_in_text(text, now=now), test_ans_list[index])
 
 
 class TimelineTestCase(TestCase):
-    def setUp(self):
-        # TODO: 对测试所用的动态建立对应对象并process为timeline对象并进行测试
-        pass
-
     def assertTimelineProcess(self, dynamic_id, event_time=None, text=None, dynamic_type=None, is_none=False):
         # 同步动态
         direct_sync_dynamic(dynamic_id)
@@ -91,4 +87,34 @@ class TimelineTestCase(TestCase):
             self.assertEqual(result.type, dynamic_type)
 
     def test_dynamic_process(self):
-        self.assertTimelineProcess(604706231073410613, is_none=True)
+        self.assertTimelineProcess(  # 测试视频动态
+            604776114479802924,
+            event_time=datetime.datetime(2021, 12, 16, 18, 0, 12).astimezone(
+                CST_TIME_ZONE),
+            dynamic_type='RE',
+            text={
+                'extract': '投稿了DECO*27 - アニマル feat. 初音ミク'
+            })
+        self.assertTimelineProcess(  # 测试直播动态
+            604788715913959797,
+            event_time=datetime.datetime(2021, 12, 17, 12, 30, 0).astimezone(
+                CST_TIME_ZONE),
+            dynamic_type='ST',
+            text={
+                'extract': '大象粪便里可以研究出什么？鸭子的不安是什么样的神态？普通人该'
+            }
+        )
+        self.assertTimelineProcess(  # 测试抽奖动态
+            594350987608092128,
+            event_time=datetime.datetime(2021, 11, 21).astimezone(
+                CST_TIME_ZONE),
+            dynamic_type='LO',
+            text={
+                'extract': '【抽奖送书】#互动抽奖##新书推荐##转发关注评论抽奖##抽'
+            }
+        )
+        self.assertTimelineProcess(  # 测试非时效性动态
+            599846007421184202,
+            is_none=True
+        )
+    # def test_timeline_view(self):
