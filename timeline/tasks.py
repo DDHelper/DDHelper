@@ -3,6 +3,10 @@ import logging
 import re
 import json
 
+from django.utils import timezone
+from DDHelper.settings import CST_TIME_ZONE
+
+
 from celery import shared_task
 from celery.utils.log import get_task_logger
 
@@ -31,28 +35,33 @@ def day_of_month(month, year):
         return 28
 
 
-def find_day_in_text(text):
+def find_day_in_text(text, now=None):
+    if now is None:
+        now = timezone.now().astimezone(CST_TIME_ZONE)
+    else:
+        now = now.astimezone(CST_TIME_ZONE)
+
     # 在一段文本中寻找日期
     specical_day_template = {'今天': 0, '明天': 1, '后天': 2, '大后天': 3}
     week_day_template = ['星期[一二三四五六七]', '周[一二三四五六七]']
     date_day_template = ['([0-9一二三四五六七八九十]){1,3}号', '([0-9一二三四五六七八九十]){1,3}日']
     # TODO: 此处应当在添加对于12.1,12.23这样日期的支持
-    result_day = datetime.datetime.now().day
+
+    result_day = now.day
     for texts in enumerate(specical_day_template.keys()):  # 检测是否有特殊日期
         if re.search(texts[1], text) is not None:
             result_day = result_day + \
                          specical_day_template[re.search(texts[1], text)[0]]
             return result_day%day_of_month(
-                datetime.datetime.now().month,
-                datetime.datetime.now().year)
+                now.month,
+                now.year)
     for texts in week_day_template:  # 检测星期
         if re.search(texts, text) is not None:
             result_day = (result_day + (chinese_number[
-                                            re.search(texts, text)[0][-1]] - 1 - datetime.datetime.now
-                                        ().weekday())%7)
+                                            re.search(texts, text)[0][-1]] - 1 - now.weekday())%7)
             return result_day%day_of_month(
-                datetime.datetime.now().month,
-                datetime.datetime.now().year)
+                now.month,
+                now.year)
     for texts in date_day_template:  # 检测具体日期
         if re.search(texts, text) is not None:
             temp_day = re.search(texts, text)[0][:-1]
@@ -89,41 +98,49 @@ def find_hourandmin_in_text(text):
     return None
 
 
-def find_time_in_appointment(appointment):
+def find_time_in_appointment(appointment, now=None):
     # 此函数用于匹配b站自带的预约功能显示文本中出现的时间
-    result_year = datetime.datetime.now().year
-    result_month = datetime.datetime.now().month
-    result_day = datetime.datetime.now().day
-    result_hour = datetime.datetime.now().hour
-    result_minute = 0
+    if now is None:
+        now = timezone.now().astimezone(CST_TIME_ZONE)
+    else:
+        now = now.astimezone(CST_TIME_ZONE)
+
+    result_year = now.year
+
     matched_time = re.search(
         r'[0-9][0-9]-[0-9][0-9] [0-9][0-9]:[0-9][0-9]', appointment)
     result_month = int(matched_time[0][0:2])
     result_day = int(matched_time[0][3:5])
     result_hour = int(matched_time[0][6:8])
     result_minute = int(matched_time[0][9:11])
-    result_time = datetime.datetime(result_year, result_month, result_day,
-                                    result_hour, result_minute)
-    if (result_time - datetime.datetime.now()).days < -30:
+    result_time = timezone.datetime(result_year, result_month, result_day,
+                                    result_hour, result_minute).astimezone(CST_TIME_ZONE)
+    # TODO: 使用timezone.timedelta实现
+    if (result_time - now).days < -30:
         result_time = datetime.datetime(result_year + 1, result_month,
                                         result_day, result_hour,
-                                        result_minute)
+                                        result_minute).astimezone(CST_TIME_ZONE)
         # 处理年份缺省时实际上为下一年的情况，认为月份和日期比今天要早一个月以上，则判定为明年
     return result_time
 
 
-def find_time_in_text(dynamic_text):
+def find_time_in_text(dynamic_text, now=None):
     # 此函数用于检测并提取文本中包含的时间，成功检出时间返回检出的时间(datetime类型)，否则返回None
     # 设置默认解析值
-    result_year = datetime.datetime.now().year
-    result_month = datetime.datetime.now().month
-    result_day = datetime.datetime.now().day
-    result_hour = datetime.datetime.now().hour
+    if now is None:
+        now = timezone.now().astimezone(CST_TIME_ZONE)
+    else:
+        now = now.astimezone(CST_TIME_ZONE)
+
+    result_year = now.year
+    result_month = now.month
+    result_day = now.day
+    result_hour = now.hour
     result_minute = 0
     # 先尝试匹配日期
     if find_day_in_text(dynamic_text):
         result_day = find_day_in_text(dynamic_text)
-        if result_day < datetime.datetime.now().day:  # 日期小于当前日期，应当为下一个月
+        if result_day < now.day:  # 日期小于当前日期，应当为下一个月
             result_month = result_month + 1
             if result_month > 12:  # 考虑跨年情况
                 result_month = 1
@@ -132,9 +149,9 @@ def find_time_in_text(dynamic_text):
             result_hour, result_minute = find_hourandmin_in_text(dynamic_text)
             return datetime.datetime(
                 result_year, result_month, result_day,
-                result_hour, result_minute)
+                result_hour, result_minute).astimezone(CST_TIME_ZONE)
         else:
-            return datetime.datetime(result_year, result_month, result_day)
+            return timezone.datetime(result_year, result_month, result_day).astimezone(CST_TIME_ZONE)
     else:
         return None
 
@@ -193,9 +210,10 @@ def do_process(dynamic_id):
     dynamic_time = None
     try:  # 先检测是否使用了B站已有的直播预约功能,由预约信息中提取时间
         dynamic_time = find_time_in_appointment(
-            origin_dynamic.raw['display']['add_on_card_info'][0]['reserve_attach_card']['desc_first']['text'])
+            origin_dynamic.raw['display']['add_on_card_info'][0]['reserve_attach_card']['desc_first']['text'],
+            now=origin_dynamic.timestamp)
     except KeyError:
-        dynamic_time = find_time_in_text(dynamic_text)
+        dynamic_time = find_time_in_text(dynamic_text, now=origin_dynamic.timestamp)
     finally:
         if dynamic_time is not None:
             TimelineEntry.objects.update_or_create(dynamic=origin_dynamic,

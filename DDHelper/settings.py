@@ -14,6 +14,8 @@ import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+import pytz
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
@@ -21,6 +23,7 @@ TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
+CST_TIME_ZONE = pytz.timezone("Asia/Shanghai")
 
 # Celery settings
 

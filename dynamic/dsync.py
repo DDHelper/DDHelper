@@ -5,7 +5,7 @@ from django.utils import timezone
 import warnings
 import pytz
 
-CST_TIME_ZONE = pytz.timezone("Asia/Shanghai")
+from DDHelper.settings import CST_TIME_ZONE
 
 
 class DsyncException(Exception):
