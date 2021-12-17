@@ -148,8 +148,7 @@ class TimelineTestCase(TestCase):
     def test_dynamic_process(self):
         self.assertTimelineProcess(  # 测试视频动态
             604776114479802924,
-            event_time=datetime.datetime(2021, 12, 16, 18, 0, 12).astimezone(
-                CST_TIME_ZONE),
+            event_time=datetime.datetime(2021, 12, 16, 18, 0, 12).astimezone(CST_TIME_ZONE),
             dynamic_type='RE',
             text={
                 'extract': '投稿了DECO*27 - アニマル feat. 初音ミク'

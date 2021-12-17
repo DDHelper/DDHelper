@@ -197,7 +197,7 @@ def do_process(dynamic_id):
         TimelineEntry.objects.update_or_create(
             dynamic=origin_dynamic,
             defaults=dict(
-                event_time=origin_dynamic.timestamp,
+                event_time=origin_dynamic.timestamp.astimezone(CST_TIME_ZONE),
                 type='RE',
                 text={
                     'extract': f'投稿了{dynamic_text}'
