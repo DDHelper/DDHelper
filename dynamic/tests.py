@@ -69,7 +69,7 @@ class ModelTest(TestCase):
             ))
 
         d = models.Dynamic.objects.get(dynamic_id=2)
-        self.assertEqual(d.member.mid, 1)
+        self.assertEqual(d.member.mid, 2)
 
         self.assertEqual(d.timestamp.timestamp(), 1636009208)
         self.assertEqual(str(d.timestamp), "2021-11-04 07:00:08+00:00")
