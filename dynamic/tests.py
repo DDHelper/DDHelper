@@ -46,7 +46,7 @@ class ModelTest(TestCase):
         d.dynamic_id = 1
         d.member = sm
         d.dynamic_type = 233
-        d.timestamp = timezone.datetime.fromtimestamp(1636009208, tz=CST_TIME_ZONE)
+        d.timestamp = timezone.datetime.fromtimestamp(1639648812, tz=CST_TIME_ZONE)
         d.raw = {"a": 1}
         d.save()
 
@@ -58,6 +58,23 @@ class ModelTest(TestCase):
         self.assertEqual(d.timestamp.timestamp(), 1636009208)
         self.assertEqual(str(d.timestamp), "2021-11-04 07:00:08+00:00")
         self.assertEqual(str(d.timestamp.astimezone(CST_TIME_ZONE)), "2021-11-04 15:00:08+08:00")
+
+        models.Dynamic.objects.update_or_create(
+            dynamic_id=2,
+            defaults=dict(
+                member=sm,
+                dynamic_type=8,
+                timestamp=d.timestamp.astimezone(CST_TIME_ZONE),
+                raw={}
+            ))
+
+        d = models.Dynamic.objects.get(dynamic_id=2)
+        self.assertEqual(d.member.mid, 1)
+
+        self.assertEqual(d.timestamp.timestamp(), 1636009208)
+        self.assertEqual(str(d.timestamp), "2021-11-04 07:00:08+00:00")
+        self.assertEqual(str(d.timestamp.astimezone(CST_TIME_ZONE)), "2021-11-04 15:00:08+08:00")
+
 
 
 class DsyncTest(TestCase):
