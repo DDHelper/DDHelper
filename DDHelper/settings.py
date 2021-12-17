@@ -14,6 +14,9 @@ import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+import pytz
+from django.utils import timezone
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
@@ -21,6 +24,8 @@ TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
+CST_TIME_ZONE = pytz.timezone("Asia/Shanghai")
+CST_TIME_ZONE = timezone.now().astimezone(CST_TIME_ZONE).tzinfo
 
 # Celery settings
 
@@ -42,6 +47,7 @@ CELERY_BEAT_SCHEDULE = {
 CELERY_TASK_ROUTES = ([
     ('dynamic.tasks.*', {'queue': 'dynamic'}),
     ('biliapi.tasks.*', {'queue': 'biliapi'}),
+    ('timeline.tasks.*', {'queue': 'timeline'}),
 ],)
 
 PROXY_POOL = os.environ.get('PROXY_POOL', 'http://edrows.top:5555/random')
@@ -76,7 +82,8 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'account',
     'dynamic',
-    'subscribe'
+    'subscribe',
+    'timeline'
 ]
 
 MIDDLEWARE = [

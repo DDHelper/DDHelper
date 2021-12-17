@@ -1,5 +1,5 @@
 import time
-
+import datetime
 from django.test import TestCase
 from django.utils import timezone
 import pytz
@@ -13,8 +13,7 @@ from .models import DynamicSyncInfo, Dynamic
 from subscribe.models import SubscribeMember, MemberGroup
 from io import StringIO
 from django.core.management import call_command
-
-CST_TIME_ZONE = pytz.timezone("Asia/Shanghai")
+from DDHelper.settings import CST_TIME_ZONE
 
 
 class SyncBeatTest(TestCase):
@@ -55,6 +54,20 @@ class ModelTest(TestCase):
         d = models.Dynamic.objects.get(dynamic_id=1)
         self.assertEqual(d.member.mid, 1)
 
+        self.assertEqual(d.timestamp.timestamp(), 1636009208)
+        self.assertEqual(str(d.timestamp), "2021-11-04 07:00:08+00:00")
+        self.assertEqual(str(d.timestamp.astimezone(CST_TIME_ZONE)), "2021-11-04 15:00:08+08:00")
+
+        models.Dynamic.objects.update_or_create(
+            dynamic_id=2,
+            defaults=dict(
+                member=sm,
+                dynamic_type=8,
+                timestamp=d.timestamp.astimezone(CST_TIME_ZONE),
+                raw={}
+            ))
+
+        d = models.Dynamic.objects.get(dynamic_id=2)
         self.assertEqual(d.timestamp.timestamp(), 1636009208)
         self.assertEqual(str(d.timestamp), "2021-11-04 07:00:08+00:00")
         self.assertEqual(str(d.timestamp.astimezone(CST_TIME_ZONE)), "2021-11-04 15:00:08+08:00")
@@ -136,4 +149,13 @@ class DsyncTest(TestCase):
         dy = Dynamic.objects.filter(pk=604029782310941867).first()
         self.assertNotEqual(dy, None)
         self.assertEqual(dy.raw['desc']['uid'], 1473830)
+
+    def test_time_zone(self):
+        tasks.direct_sync_dynamic(604776114479802924)
+        dy = Dynamic.objects.filter(pk=604776114479802924).first()
+        self.assertEqual(dy.timestamp.timestamp(), 1639648812)
+        self.assertEqual(
+            dy.timestamp.astimezone(CST_TIME_ZONE),
+            datetime.datetime(2021, 12, 16, 18, 0, 12, tzinfo=CST_TIME_ZONE),
+        )
 

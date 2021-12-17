@@ -14,6 +14,12 @@ services:
         env_file:
             - envfile.txt
         command: ["celery", "-A", "DDHelper", "worker", "-Q", "dynamic", "-l", "info", "--max-tasks-per-child", "100", "--autoscale", "10,3", "-E"]
+    ddh_timeline:
+        image: ccr.ccs.tencentyun.com/edrows/ddhelper:main
+        container_name: ddh_timeline
+        env_file:
+            - envfile.txt
+        command: [ "celery", "-A", "DDHelper", "worker", "-Q", "timeline", "-l", "info", "--max-tasks-per-child", "400", "--autoscale", "5,1", "-E" ]
     ddh_biliapi:
         image: ccr.ccs.tencentyun.com/edrows/ddhelper:main
         container_name: ddh_biliapi

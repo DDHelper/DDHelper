@@ -20,6 +20,8 @@ jobs:
     - name: Set up MySQL
       run: |
         sudo systemctl start mysql.service
+        sudo mysql_tzinfo_to_sql /usr/share/zoneinfo
+        sudo systemctl restart mysql.service
         mysql -e 'CREATE DATABASE test_db;' -u root -proot
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
