@@ -1,5 +1,5 @@
 import time
-
+import datetime
 from django.test import TestCase
 from django.utils import timezone
 import pytz
@@ -72,7 +72,6 @@ class ModelTest(TestCase):
         self.assertEqual(d.timestamp.timestamp(), 1636009208)
         self.assertEqual(str(d.timestamp), "2021-11-04 07:00:08+00:00")
         self.assertEqual(str(d.timestamp.astimezone(CST_TIME_ZONE)), "2021-11-04 15:00:08+08:00")
-
 
 
 class DsyncTest(TestCase):
@@ -156,4 +155,8 @@ class DsyncTest(TestCase):
         tasks.direct_sync_dynamic(604776114479802924)
         dy = Dynamic.objects.filter(pk=604776114479802924).first()
         self.assertEqual(dy.timestamp.timestamp(), 1639648812)
+        self.assertEqual(
+            dy.timestamp.astimezone(CST_TIME_ZONE),
+            datetime.datetime(2021, 12, 16, 18, 0, 12).astimezone(CST_TIME_ZONE),
+        )
 
