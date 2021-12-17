@@ -46,7 +46,7 @@ class ModelTest(TestCase):
         d.dynamic_id = 1
         d.member = sm
         d.dynamic_type = 233
-        d.timestamp = timezone.datetime.fromtimestamp(1639648812, tz=CST_TIME_ZONE)
+        d.timestamp = timezone.datetime.fromtimestamp(1636009208, tz=CST_TIME_ZONE)
         d.raw = {"a": 1}
         d.save()
 
