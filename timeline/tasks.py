@@ -108,12 +108,12 @@ def find_time_in_appointment(appointment, now):
     result_hour = int(matched_time[0][6:8])
     result_minute = int(matched_time[0][9:11])
     result_time = timezone.datetime(result_year, result_month, result_day,
-                                    result_hour, result_minute).astimezone(CST_TIME_ZONE)
+                                    result_hour, result_minute, tzinfo=CST_TIME_ZONE)
     # TODO: 使用timezone.timedelta实现
     if (result_time - now).days < -30:
         result_time = datetime.datetime(result_year + 1, result_month,
                                         result_day, result_hour,
-                                        result_minute).astimezone(CST_TIME_ZONE)
+                                        result_minute, tzinfo=CST_TIME_ZONE)
         # 处理年份缺省时实际上为下一年的情况，认为月份和日期比今天要早一个月以上，则判定为明年
     return result_time
 
@@ -140,9 +140,9 @@ def find_time_in_text(dynamic_text, now):
             result_hour, result_minute = find_hourandmin_in_text(dynamic_text)
             return datetime.datetime(
                 result_year, result_month, result_day,
-                result_hour, result_minute).astimezone(CST_TIME_ZONE)
+                result_hour, result_minute, tzinfo=CST_TIME_ZONE)
         else:
-            return timezone.datetime(result_year, result_month, result_day).astimezone(CST_TIME_ZONE)
+            return timezone.datetime(result_year, result_month, result_day, tzinfo=CST_TIME_ZONE)
     else:
         return None
 

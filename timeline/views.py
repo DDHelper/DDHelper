@@ -24,7 +24,7 @@ def show_timeline(request):
         if offset == 0:
             offset = None
         else:
-            offset = datetime.datetime.fromtimestamp(offset).astimezone(CST_TIME_ZONE)
+            offset = datetime.datetime.fromtimestamp(offset, tz=CST_TIME_ZONE)
 
     group = MemberGroup.get_group(aid=request.user.uid, gid=gid)
     if group is not None:

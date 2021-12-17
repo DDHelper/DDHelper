@@ -13,8 +13,7 @@ from .models import DynamicSyncInfo, Dynamic
 from subscribe.models import SubscribeMember, MemberGroup
 from io import StringIO
 from django.core.management import call_command
-
-CST_TIME_ZONE = pytz.timezone("Asia/Shanghai")
+from DDHelper.settings import CST_TIME_ZONE
 
 
 class SyncBeatTest(TestCase):
@@ -157,6 +156,6 @@ class DsyncTest(TestCase):
         self.assertEqual(dy.timestamp.timestamp(), 1639648812)
         self.assertEqual(
             dy.timestamp.astimezone(CST_TIME_ZONE),
-            datetime.datetime(2021, 12, 16, 18, 0, 12).astimezone(CST_TIME_ZONE),
+            datetime.datetime(2021, 12, 16, 18, 0, 12, tzinfo=CST_TIME_ZONE),
         )
 

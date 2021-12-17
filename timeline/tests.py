@@ -50,7 +50,7 @@ class TextFunctionTestcase(TestCase):  # 测试文本的提取、日期的提取
         self.assertEqual(tasks.day_of_month(2, 2000), 29)
 
     def test_find_day_in_text(self):
-        now = datetime.datetime(2021, 6, 7).astimezone(CST_TIME_ZONE)
+        now = datetime.datetime(2021, 6, 7, tzinfo=CST_TIME_ZONE)
         self.assertIsNone(tasks.find_day_in_text("无聊", now=now))
         self.assertEqual(tasks.find_day_in_text("今天", now=now), 7)
         self.assertEqual(tasks.find_day_in_text("明天", now=now), 8)
@@ -74,18 +74,18 @@ class TextFunctionTestcase(TestCase):  # 测试文本的提取、日期的提取
         self.assertEqual(tasks.find_hourandmin_in_text("十二点半"), (12, 30))
 
     def test_find_time_in_appointment(self):
-        now = datetime.datetime(2021, 6, 7).astimezone(CST_TIME_ZONE)
+        now = datetime.datetime(2021, 6, 7, tzinfo=CST_TIME_ZONE)
         self.assertEqual(
             tasks.find_time_in_appointment("07-21 20:00", now=now),
-            timezone.datetime(2021, 7, 21, 20, 00).astimezone(CST_TIME_ZONE))
+            timezone.datetime(2021, 7, 21, 20, 00, tzinfo=CST_TIME_ZONE))
 
-        now = datetime.datetime(2021, 12, 2).astimezone(CST_TIME_ZONE)
+        now = datetime.datetime(2021, 12, 2, tzinfo=CST_TIME_ZONE)
         self.assertEqual(
             tasks.find_time_in_appointment("01-21 20:00", now=now),
-            timezone.datetime(2022, 1, 21, 20, 00).astimezone(CST_TIME_ZONE))
+            timezone.datetime(2022, 1, 21, 20, 00, tzinfo=CST_TIME_ZONE))
 
     def test_find_time_in_text(self):  # 测试文本时间提取功能
-        now = datetime.datetime(2021, 12, 6).astimezone(CST_TIME_ZONE)
+        now = datetime.datetime(2021, 12, 6, tzinfo=CST_TIME_ZONE)
         self.assertEqual(find_time_in_text("您好", now=now), None)
 
         test_text_list = [
@@ -98,30 +98,31 @@ class TextFunctionTestcase(TestCase):  # 测试文本的提取、日期的提取
                 now.year,
                 now.month,
                 now.day,
-                10, 30).astimezone(CST_TIME_ZONE),
+                10, 30, tzinfo=CST_TIME_ZONE),
             datetime.datetime(
                 now.year,
                 now.month,
                 now.day,
-            ).astimezone(CST_TIME_ZONE) + datetime.timedelta(
+                tzinfo=CST_TIME_ZONE)
+            + datetime.timedelta(
                 days=((2 - now.weekday() - 1)%7)
             ),
             datetime.datetime(
                 now.year,
-                12, 20, 20, 0).astimezone(CST_TIME_ZONE),
+                12, 20, 20, 0, tzinfo=CST_TIME_ZONE),
         ]
         for index, text in enumerate(test_text_list):
             self.assertEqual(find_time_in_text(text, now=now), test_ans_list[index], msg=text)
 
-        now = datetime.datetime(2021, 11, 29).astimezone(CST_TIME_ZONE)
+        now = datetime.datetime(2021, 11, 29, tzinfo=CST_TIME_ZONE)
         self.assertEqual(
             find_time_in_text("下个月2号13点半", now=now),
-            datetime.datetime(now.year, 12, 2, 13, 30).astimezone(CST_TIME_ZONE))
+            datetime.datetime(now.year, 12, 2, 13, 30, tzinfo=CST_TIME_ZONE))
 
-        now = datetime.datetime(2021, 12, 29).astimezone(CST_TIME_ZONE)
+        now = datetime.datetime(2021, 12, 29, tzinfo=CST_TIME_ZONE)
         self.assertEqual(
             find_time_in_text("2号13点半", now=now),
-            datetime.datetime(2022, 1, 2, 13, 30).astimezone(CST_TIME_ZONE))
+            datetime.datetime(2022, 1, 2, 13, 30, tzinfo=CST_TIME_ZONE))
 
 
 class TimelineTestCase(TestCase):
@@ -148,7 +149,7 @@ class TimelineTestCase(TestCase):
     def test_dynamic_process(self):
         self.assertTimelineProcess(  # 测试视频动态
             604776114479802924,
-            event_time=datetime.datetime(2021, 12, 16, 18, 0, 12).astimezone(CST_TIME_ZONE),
+            event_time=datetime.datetime(2021, 12, 16, 18, 0, 12, tzinfo=CST_TIME_ZONE),
             dynamic_type='RE',
             text={
                 'extract': '投稿了DECO*27 - アニマル feat. 初音ミク'
@@ -159,8 +160,7 @@ class TimelineTestCase(TestCase):
         # 测试直播动态
         self.assertTimelineProcess(
             604788715913959797,
-            event_time=datetime.datetime(2021, 12, 17, 12, 30, 0).astimezone(
-                CST_TIME_ZONE),
+            event_time=datetime.datetime(2021, 12, 17, 12, 30, 0, tzinfo=CST_TIME_ZONE),
             dynamic_type='ST',
             text={
                 'extract': '大象粪便里可以研究出什么？鸭子的不安是什么样的神态？普通人该'
@@ -169,8 +169,7 @@ class TimelineTestCase(TestCase):
         # 测试抽奖动态
         self.assertTimelineProcess(
             594350987608092128,
-            event_time=datetime.datetime(2021, 11, 21).astimezone(
-                CST_TIME_ZONE),
+            event_time=datetime.datetime(2021, 11, 21, tzinfo=CST_TIME_ZONE),
             dynamic_type='LO',
             text={
                 'extract': '【抽奖送书】#互动抽奖##新书推荐##转发关注评论抽奖##抽'
