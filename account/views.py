@@ -67,7 +67,7 @@ def login(request):
 
 
 @login_required
-@require_GET
+@require_POST
 @csrf_exempt
 def logout(request):
     auth.logout(request)

@@ -11,7 +11,7 @@ from . import models
 class Login_Required_TestCase(TestCase):  # 检测Login_Required功能是否可以使用
     def test_login_required(self):
         c = Client()
-        response = c.get('/subscribe/search/', {'search_name': 'vac47'})
+        response = c.get('/subscribe/search', {'search_name': 'vac47'})
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json()['msg'], "未登录")
 
@@ -25,10 +25,10 @@ class SearchTestCase(TestCase):  # 检测搜索功能是否可以使用
     def test_search_function_work(self):  # 检测是否能正确返回搜索结果
         c = Client()
         c.login(username='test_user', password='12345678')
-        response = c.get('/subscribe/search/', {'search_name': ''})
+        response = c.get('/subscribe/search', {'search_name': ''})
         self.assertDictEqual(response.json(), {'code': 200,'data': []})        
 
-        response = c.get('/subscribe/search/', {'search_name': 'vac47'})
+        response = c.get('/subscribe/search', {'search_name': 'vac47'})
         self.assertEqual(response.json()["data"][0]["mid"], 3985768)        
 
 
@@ -41,7 +41,7 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
         self.client.login(username='test_user', password='12345678')
 
     def test_subscribe(self):
-        response = self.client.get("/subscribe/group_list/")
+        response = self.client.get("/subscribe/group_list")
         self.assertEqual(response.status_code, 200)
         self.assertGreater(len(response.json()['data']), 0)
         self.assertEqual(response.json()['data'][0]['group_name'], models.DEFAULT_GROUP_NAME)
@@ -67,7 +67,7 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get(
-            "/subscribe/group/members/",
+            "/subscribe/group/members",
             {
                 'gid': 0
             })
@@ -158,7 +158,7 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
         self.assertEqual(response.json()['msg'], '分组不存在')
 
         response = self.client.get(
-            "/subscribe/group/members/",
+            "/subscribe/group/members",
             {
                 'gid': new_group
             })
@@ -198,7 +198,7 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get(
-            "/subscribe/group/members/",
+            "/subscribe/group/members",
             {
                 'gid': new_group1
             })
