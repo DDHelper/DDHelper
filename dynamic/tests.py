@@ -137,3 +137,8 @@ class DsyncTest(TestCase):
         self.assertNotEqual(dy, None)
         self.assertEqual(dy.raw['desc']['uid'], 1473830)
 
+    def test_time_zone(self):
+        tasks.direct_sync_dynamic(604776114479802924)
+        dy = Dynamic.objects.filter(pk=604776114479802924).first()
+        self.assertEqual(dy.timestamp.timestamp(), 1639648812)
+
