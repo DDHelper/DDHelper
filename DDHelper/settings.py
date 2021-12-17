@@ -47,6 +47,7 @@ CELERY_BEAT_SCHEDULE = {
 CELERY_TASK_ROUTES = ([
     ('dynamic.tasks.*', {'queue': 'dynamic'}),
     ('biliapi.tasks.*', {'queue': 'biliapi'}),
+    ('timeline.tasks.*', {'queue': 'timeline'}),
 ],)
 
 PROXY_POOL = os.environ.get('PROXY_POOL', 'http://edrows.top:5555/random')

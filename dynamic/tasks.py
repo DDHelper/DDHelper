@@ -10,6 +10,7 @@ from .models import SyncTask
 from DDHelper import settings
 from subscribe.models import SubscribeMember
 from biliapi import tasks as biliapi
+from timeline.tasks import process_timeline
 
 logger: logging.Logger = get_task_logger(__name__)
 
@@ -126,6 +127,9 @@ def sync_member(mid: int, min_interval=settings.DYNAMIC_SYNC_MEMBER_MIN_INTERVAL
             member.dynamicmember.last_dynamic_update = timezone.now()
             member.dynamicmember.save()
             logger.info(f"成员{mid}动态同步完成")
+
+        process_timeline.chunks(zip([dy.dynamic_id for dy in dynamics]), 10).apply_async(queue='timeline')
+
     except DatabaseError as e:
         # 更新失败
         logger.warning(f"更新数据库失败: mid={mid} msg={str(e)}")
