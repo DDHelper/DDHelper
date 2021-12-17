@@ -23,6 +23,11 @@ chinese_number = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '�
 logger: logging.Logger = get_task_logger(__name__)
 
 
+class TimelineException(Exception):
+    def __init__(self, msg):
+        super(TimelineException, self).__init__(msg)
+
+
 def day_of_month(month, year):
     days_of_month = [31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     if month != 2:
@@ -103,6 +108,8 @@ def find_time_in_appointment(appointment, now):
 
     matched_time = re.search(
         r'[0-9][0-9]-[0-9][0-9] [0-9][0-9]:[0-9][0-9]', appointment)
+    if matched_time is None:
+        raise TimelineException(f"在预约[{appointment}]中未找到对应的格式")
     result_month = int(matched_time[0][0:2])
     result_day = int(matched_time[0][3:5])
     result_hour = int(matched_time[0][6:8])
@@ -180,7 +187,12 @@ def process_timeline(dynamic_id):
     if not info.should_update():
         logger.info(f"动态{dynamic_id}已处理，跳过")
         return
-    do_process(dynamic_id)
+    try:
+        do_process(dynamic_id)
+    except ValueError as e:
+        logger.warning(f"[{dynamic_id}] {e}")
+    except TimelineException as e:
+        logger.warning(f"[{dynamic_id}] {e}")
     info.apply_update()
 
 
