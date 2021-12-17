@@ -61,6 +61,19 @@ class TimelineEntry(models.Model):
         default='NT'
     )
 
+    @classmethod
+    def select_entry_in_group(cls, group, offset):
+        """
+        选择一个分组中的timeline对象，从时间小于time_end算起
+        :param group:
+        :param offset:
+        :return:
+        """
+        query = TimelineEntry.objects.filter(dynamic__member__in=list(group.members.all().values_list('mid', flat=True)))
+        if offset is not None:
+            query = query.filter(event_time__lt=offset)
+        return query.order_by('-event_time')
+
     def as_dict(self):
         return {
             'dynamic_id': self.dynamic_id,

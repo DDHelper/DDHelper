@@ -1,5 +1,8 @@
 import json
 import datetime
+
+from DDHelper.settings import CST_TIME_ZONE
+from DDHelper.util import load_params
 from timeline.models import TimelineEntry
 from subscribe.models import MemberGroup
 from account.decorators import login_required
@@ -9,53 +12,39 @@ from django.http.response import JsonResponse
 # Create your views here.
 @login_required
 def show_timeline(request):
-    # 以post方式输入需要时效性的日期范围time_region，为两个元素的列表(必须返回)，
-    # 每个元素有year,month,day,hour,minute,second6个属性
-    # 还可以输入需要筛选的标签类型dynamic_type(含有'ST','RE','LO'三个元素中任意几个的列表)
-    # 必须返回，不筛选则需要返回空列表
-    # 还可以输入需要筛选的分组标签member_group(gid列表)
-    # 必须返回，不筛选则需要返回空列表
-    # 返回json，包含了搜索范围内的所有时效性动态对象及这些对象的全部信息
-    time_region_list = request.POST.getlist('time_region')
-    start_time = datetime.time(
-        year=time_region_list[0].year,
-        month=time_region_list[0].month,
-        day=time_region_list[0].day,
-        hour=time_region_list[0].hour,
-        minute=time_region_list[0].minute,
-        second=time_region_list[0].second
-    )
-    end_time = datetime.time(
-        year=time_region_list[1].year,
-        month=time_region_list[1].month,
-        day=time_region_list[1].day,
-        hour=time_region_list[1].hour,
-        minute=time_region_list[1].minute,
-        second=time_region_list[1].second
-    )
-    result_dynamic = TimelineEntry.objects.\
-        filter(event_time__range=(start_time, end_time))
-    dynamic_type = request.POST.getlist('dynamic_type')
-    if dynamic_type != []:
-        result_dynamic = result_dynamic.\
-            filter(type__in=dynamic_type)
-    selected_group = request.POST.getlist('member_group')
-    if selected_group != []:
-        selected_member = MemberGroup.objects.\
-            filter(gid__in=selected_group).order_by('members').values_list(
-                'members').distinct()
-        result_dynamic = result_dynamic.\
-            filter(dynamic__member__in=selected_member)
-    dynamic_data = []
-    for dynamic in result_dynamic:
-        each_dynamic_data = {
-            'event_time': dynamic.event_time.strftime("%Y-%m-%d %H:%M:%S"),
-            'text': json.dumps(dynamic.text),
-            'type': dynamic.type,
-            'member': {
-                'mid': dynamic.dynamic.member.mid,
-                'name': dynamic.dynamic.member.name,
-                'face': dynamic.dynamic.member.face
-            }}
-        dynamic_data.append(each_dynamic_data)
-    return JsonResponse(dynamic_data)
+    """
+    类似dynamic中的实现
+    :param request:
+    :return:
+    """
+    with load_params():
+        gid = int(request.GET.get('gid', 0))
+        offset = int(request.GET.get('offset', 0))
+        size = int(request.GET.get('size', 20))
+        if offset == 0:
+            offset = None
+        else:
+            offset = datetime.datetime.fromtimestamp(offset).astimezone(CST_TIME_ZONE)
+
+    group = MemberGroup.get_group(aid=request.user.uid, gid=gid)
+    if group is not None:
+        entry = TimelineEntry.select_entry_in_group(group, offset)
+        entry = list(entry[:size + 1])
+        has_more = len(entry) >= size + 1
+        offset = entry[-1].event_time.timestamp() if has_more else 0
+        entry = entry[0:-1] if has_more else entry
+        return JsonResponse({
+            'code': 200,
+            'data': {
+                'has_more': has_more,
+                'gid': group.gid,
+                'group_name': group.group_name,
+                'offset': offset,
+                'data': [e.as_dict() for e in entry]
+            }
+        })
+    else:
+        return JsonResponse({
+            'code': 404,
+            'msg': "分组不存在"
+        }, status=404)

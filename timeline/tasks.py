@@ -35,14 +35,11 @@ def day_of_month(month, year):
         return 28
 
 
-def find_day_in_text(text, now=None):
-    if now is None:
-        now = timezone.now().astimezone(CST_TIME_ZONE)
-    else:
-        now = now.astimezone(CST_TIME_ZONE)
+def find_day_in_text(text, now):
+    now = now.astimezone(CST_TIME_ZONE)
 
     # 在一段文本中寻找日期
-    specical_day_template = {'今天': 0, '明天': 1, '后天': 2, '大后天': 3}
+    specical_day_template = {'今天': 0, '明天': 1, '后天': 2}
     week_day_template = ['星期[一二三四五六七]', '周[一二三四五六七]']
     date_day_template = ['([0-9一二三四五六七八九十]){1,3}号', '([0-9一二三四五六七八九十]){1,3}日']
     # TODO: 此处应当在添加对于12.1,12.23这样日期的支持
@@ -90,7 +87,7 @@ def find_hourandmin_in_text(text):
                     result_hour = int(temp_time[0][:-2])
                 except ValueError:  # 抓取到的是中文，无法用int转换
                     result_hour = chinese_number[temp_time[0][:-2]]
-            elif index == 0:  # 考虑第一种情况
+            else:  # 考虑第一种情况
                 result_hour = int(re.search(
                     '^[0-9]{1,2}', temp_time[0][0:2])[0])
                 result_minute = int(re.search('[0-9]{2}', temp_time[0][2:])[0])
@@ -98,12 +95,9 @@ def find_hourandmin_in_text(text):
     return None
 
 
-def find_time_in_appointment(appointment, now=None):
+def find_time_in_appointment(appointment, now):
     # 此函数用于匹配b站自带的预约功能显示文本中出现的时间
-    if now is None:
-        now = timezone.now().astimezone(CST_TIME_ZONE)
-    else:
-        now = now.astimezone(CST_TIME_ZONE)
+    now = now.astimezone(CST_TIME_ZONE)
 
     result_year = now.year
 
@@ -124,13 +118,10 @@ def find_time_in_appointment(appointment, now=None):
     return result_time
 
 
-def find_time_in_text(dynamic_text, now=None):
+def find_time_in_text(dynamic_text, now):
     # 此函数用于检测并提取文本中包含的时间，成功检出时间返回检出的时间(datetime类型)，否则返回None
     # 设置默认解析值
-    if now is None:
-        now = timezone.now().astimezone(CST_TIME_ZONE)
-    else:
-        now = now.astimezone(CST_TIME_ZONE)
+    now = now.astimezone(CST_TIME_ZONE)
 
     result_year = now.year
     result_month = now.month
@@ -138,8 +129,8 @@ def find_time_in_text(dynamic_text, now=None):
     result_hour = now.hour
     result_minute = 0
     # 先尝试匹配日期
-    if find_day_in_text(dynamic_text):
-        result_day = find_day_in_text(dynamic_text)
+    result_day = find_day_in_text(dynamic_text, now=now)
+    if result_day is not None:
         if result_day < now.day:  # 日期小于当前日期，应当为下一个月
             result_month = result_month + 1
             if result_month > 12:  # 考虑跨年情况

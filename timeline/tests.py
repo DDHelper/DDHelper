@@ -2,13 +2,16 @@ from django.test import TestCase
 from django.test import Client
 from django.utils import timezone
 import datetime
-from dynamic.tests import DsyncTest
+
+from account.models import Userinfo
 from timeline.tasks import extract_from_text, classify_dynamic
 from timeline.tasks import find_time_in_text, process_timeline
 from dynamic.models import Dynamic
 from dynamic.tasks import direct_sync_dynamic
 from timeline.models import TimelineEntry, TimelineDynamicProcessInfo
+from timeline import tasks
 from DDHelper.settings import CST_TIME_ZONE
+from subscribe.models import MemberGroup
 # Create your tests here.
 
 
@@ -20,6 +23,8 @@ class TextFunctionTestcase(TestCase):  # 测试文本的提取、日期的提取
         self.assertEqual(
             extract_from_text(test_text),
             test_text[0:extract_length])
+
+        self.assertEqual(extract_from_text("我将在 12.3 发布一首新歌。"), "我将在 12.3 发布一首新歌。")
 
     def test_classify_dynamic(self):  # 测试文本分类功能
         test_text_list = [
@@ -38,12 +43,55 @@ class TextFunctionTestcase(TestCase):  # 测试文本的提取、日期的提取
         for index, text in enumerate(test_text_list):
             self.assertEqual(classify_dynamic(text), test_ans_list[index])
 
+    def test_day_of_month(self):
+        self.assertEqual(tasks.day_of_month(2, 2001), 28)
+        self.assertEqual(tasks.day_of_month(2, 2100), 28)
+        self.assertEqual(tasks.day_of_month(2, 2004), 29)
+        self.assertEqual(tasks.day_of_month(2, 2000), 29)
+
+    def test_find_day_in_text(self):
+        now = datetime.datetime(2021, 6, 7).astimezone(CST_TIME_ZONE)
+        self.assertIsNone(tasks.find_day_in_text("无聊", now=now))
+        self.assertEqual(tasks.find_day_in_text("今天", now=now), 7)
+        self.assertEqual(tasks.find_day_in_text("明天", now=now), 8)
+        self.assertEqual(tasks.find_day_in_text("后天", now=now), 9)
+        self.assertEqual(tasks.find_day_in_text("星期一", now=now), 7)
+        self.assertEqual(tasks.find_day_in_text("星期二", now=now), 8)
+        self.assertEqual(tasks.find_day_in_text("周三", now=now), 9)
+
+        self.assertEqual(tasks.find_day_in_text("6号", now=now), 6)
+        self.assertEqual(tasks.find_day_in_text("666号", now=now), None)
+        self.assertEqual(tasks.find_day_in_text("十三日", now=now), 13)
+        self.assertEqual(tasks.find_day_in_text("28日", now=now), 28)
+        self.assertEqual(tasks.find_day_in_text("二十九号", now=now), 29)
+
+    def test_find_hourandmin_in_text(self):
+        self.assertEqual(tasks.find_hourandmin_in_text("哈哈哈"), None)
+        self.assertEqual(tasks.find_hourandmin_in_text("12:12"), (12, 12))
+        self.assertEqual(tasks.find_hourandmin_in_text("12点12"), (12, 12))
+        self.assertEqual(tasks.find_hourandmin_in_text("12点12分"), (12, 12))
+        self.assertEqual(tasks.find_hourandmin_in_text("12点半"), (12, 30))
+        self.assertEqual(tasks.find_hourandmin_in_text("十二点半"), (12, 30))
+
+    def test_find_time_in_appointment(self):
+        now = datetime.datetime(2021, 6, 7).astimezone(CST_TIME_ZONE)
+        self.assertEqual(
+            tasks.find_time_in_appointment("07-21 20:00", now=now),
+            timezone.datetime(2021, 7, 21, 20, 00).astimezone(CST_TIME_ZONE))
+
+        now = datetime.datetime(2021, 12, 2).astimezone(CST_TIME_ZONE)
+        self.assertEqual(
+            tasks.find_time_in_appointment("01-21 20:00", now=now),
+            timezone.datetime(2022, 1, 21, 20, 00).astimezone(CST_TIME_ZONE))
+
     def test_find_time_in_text(self):  # 测试文本时间提取功能
-        now = timezone.now().astimezone(CST_TIME_ZONE)
+        now = datetime.datetime(2021, 12, 6).astimezone(CST_TIME_ZONE)
+        self.assertEqual(find_time_in_text("您好", now=now), None)
+
         test_text_list = [
             '''今天上午10点半直播''',
             '''周二直播''',
-            '''12月20日20:00直播'''
+            '''12月20日20:00直播''',
         ]
         test_ans_list = [
             datetime.datetime(
@@ -63,7 +111,17 @@ class TextFunctionTestcase(TestCase):  # 测试文本的提取、日期的提取
                 12, 20, 20, 0).astimezone(CST_TIME_ZONE),
         ]
         for index, text in enumerate(test_text_list):
-            self.assertEqual(find_time_in_text(text, now=now), test_ans_list[index])
+            self.assertEqual(find_time_in_text(text, now=now), test_ans_list[index], msg=text)
+
+        now = datetime.datetime(2021, 11, 29).astimezone(CST_TIME_ZONE)
+        self.assertEqual(
+            find_time_in_text("下个月2号13点半", now=now),
+            datetime.datetime(now.year, 12, 2, 13, 30).astimezone(CST_TIME_ZONE))
+
+        now = datetime.datetime(2021, 12, 29).astimezone(CST_TIME_ZONE)
+        self.assertEqual(
+            find_time_in_text("2号13点半", now=now),
+            datetime.datetime(2022, 1, 2, 13, 30).astimezone(CST_TIME_ZONE))
 
 
 class TimelineTestCase(TestCase):
@@ -81,7 +139,7 @@ class TimelineTestCase(TestCase):
             self.assertIsNone(result)
             return
         if event_time:
-            self.assertEqual(result.event_time, event_time)
+            self.assertEqual(result.event_time.astimezone(CST_TIME_ZONE), event_time)
         if text:
             self.assertDictEqual(result.text, text)
         if dynamic_type:
@@ -96,7 +154,11 @@ class TimelineTestCase(TestCase):
             text={
                 'extract': '投稿了DECO*27 - アニマル feat. 初音ミク'
             })
-        self.assertTimelineProcess(  # 测试直播动态
+
+        process_timeline(604776114479802924)  # 覆盖Skip
+
+        # 测试直播动态
+        self.assertTimelineProcess(
             604788715913959797,
             event_time=datetime.datetime(2021, 12, 17, 12, 30, 0).astimezone(
                 CST_TIME_ZONE),
@@ -105,7 +167,8 @@ class TimelineTestCase(TestCase):
                 'extract': '大象粪便里可以研究出什么？鸭子的不安是什么样的神态？普通人该'
             }
         )
-        self.assertTimelineProcess(  # 测试抽奖动态
+        # 测试抽奖动态
+        self.assertTimelineProcess(
             594350987608092128,
             event_time=datetime.datetime(2021, 11, 21).astimezone(
                 CST_TIME_ZONE),
@@ -114,20 +177,56 @@ class TimelineTestCase(TestCase):
                 'extract': '【抽奖送书】#互动抽奖##新书推荐##转发关注评论抽奖##抽'
             }
         )
-        self.assertTimelineProcess(  # 测试非时效性动态
+
+        # 测试非时效性动态
+        self.assertTimelineProcess(
+            89041896182999882,
+            is_none=True
+        )
+
+        self.assertTimelineProcess(
+            174001155365656648,
+            is_none=True
+        )
+
+        self.assertTimelineProcess(
             599846007421184202,
             is_none=True
         )
 
-    def test_timeline_view(self):
-        # 同步测试样例动态&处理测试样例动态
-        test_dynamic_id_list = [
-        ]
-        for id in test_dynamic_id_list:
-            direct_sync_dynamic(id)
-            process_timeline(id)
-        # 测试时间筛选功能
-        # 测试类型筛选功能
-        # 测试分组筛选功能
-        # 测试多种筛选并行功能
-        
+
+class TimelineViewTestCase(TestCase):
+    def setUp(self):
+        Userinfo.objects.create_user(
+            username='test_user',
+            password='12345678',
+            email='test@test.test')
+        self.client.login(username='test_user', password='12345678')
+
+        uid = self.client.get("/account/user_info").json()['data']['uid']
+
+        for dynamic_id in [
+            604788715913959797,
+            604776114479802924,
+        ]:
+            direct_sync_dynamic(dynamic_id)
+            process_timeline(dynamic_id)
+
+        group = MemberGroup.get_group(uid, 0)
+        group.members.add(2000819931, 177291194)
+
+    def test_list_timeline(self):
+        rsp = self.client.get("/timeline/list")
+        self.assertEqual(rsp.status_code, 200)
+        json = rsp.json()
+        self.assertEqual(len(json['data']['data']), 2)
+
+        rsp = self.client.get("/timeline/list", {'offset': 1639651746})
+        self.assertEqual(rsp.status_code, 200)
+        json = rsp.json()
+        self.assertEqual(len(json['data']['data']), 1)
+
+        rsp = self.client.get("/timeline/list", {'gid': 999})
+        self.assertEqual(rsp.status_code, 404)
+
+
