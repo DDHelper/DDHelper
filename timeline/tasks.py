@@ -79,7 +79,7 @@ def find_day_in_text(text, now=None):
 def find_hourandmin_in_text(text):
     # 在一段文本中寻找具体时刻
     # TODO: 此处应当再添加对于12点，1点的支持，还有对于上午下午晚上的识别
-    hour_and_min_template = {0: '[0-9]{1,2}[点时:][0-9]{2}[分]?',
+    hour_and_min_template = {0: '[0-9]{1,2}[点时:：][0-9]{2}[分]?',
                              1: '[0-9零一二三四五六七八九十]{1,3}点半'}
     for temp, (index, texts) in enumerate(hour_and_min_template.items()):
         if re.search(texts, text) is not None:

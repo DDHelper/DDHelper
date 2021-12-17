@@ -2,6 +2,7 @@ from django.test import TestCase
 from django.test import Client
 from django.utils import timezone
 import datetime
+from dynamic.tests import DsyncTest
 from timeline.tasks import extract_from_text, classify_dynamic
 from timeline.tasks import find_time_in_text, process_timeline
 from dynamic.models import Dynamic
@@ -117,4 +118,16 @@ class TimelineTestCase(TestCase):
             599846007421184202,
             is_none=True
         )
-    # def test_timeline_view(self):
+
+    def test_timeline_view(self):
+        # 同步测试样例动态&处理测试样例动态
+        test_dynamic_id_list = [
+        ]
+        for id in test_dynamic_id_list:
+            direct_sync_dynamic(id)
+            process_timeline(id)
+        # 测试时间筛选功能
+        # 测试类型筛选功能
+        # 测试分组筛选功能
+        # 测试多种筛选并行功能
+        
