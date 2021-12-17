@@ -69,8 +69,6 @@ class ModelTest(TestCase):
             ))
 
         d = models.Dynamic.objects.get(dynamic_id=2)
-        self.assertEqual(d.member.mid, 2)
-
         self.assertEqual(d.timestamp.timestamp(), 1636009208)
         self.assertEqual(str(d.timestamp), "2021-11-04 07:00:08+00:00")
         self.assertEqual(str(d.timestamp.astimezone(CST_TIME_ZONE)), "2021-11-04 15:00:08+08:00")
