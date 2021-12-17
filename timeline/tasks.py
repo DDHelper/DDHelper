@@ -186,6 +186,7 @@ def process_timeline(dynamic_id):
 
 def do_process(dynamic_id):
     origin_dynamic = Dynamic.objects.get(dynamic_id=dynamic_id)
+    origin_dynamic.timestamp = origin_dynamic.timestamp.astimezone(CST_TIME_ZONE)
     dynamic_type = origin_dynamic.raw['desc']['type']
     card = json.loads(origin_dynamic.raw['card'])
     if dynamic_type == 1 or dynamic_type == 4:  # 转发或文字动态
@@ -197,7 +198,7 @@ def do_process(dynamic_id):
         TimelineEntry.objects.update_or_create(
             dynamic=origin_dynamic,
             defaults=dict(
-                event_time=origin_dynamic.timestamp.astimezone(CST_TIME_ZONE),
+                event_time=origin_dynamic.timestamp,
                 type='RE',
                 text={
                     'extract': f'投稿了{dynamic_text}'
