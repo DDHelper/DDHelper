@@ -190,6 +190,11 @@ def update_group(request):
                     'group_name': group.group_name
                 }
             })
+        else:
+                return JsonResponse({
+                    'code': 400,
+                    'msg': "新分组名为空"
+                }, status=400)
     else:
         return JsonResponse({
             'code': 404,

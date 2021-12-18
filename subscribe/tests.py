@@ -190,14 +190,14 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
         self.assertEqual(response.json()['msg'], '分组不存在')
 
         #分组改名，给空字符串
-        # response = self.client.post(
-        #     "/subscribe/group/update/",
-        #     {
-        #         'gid': new_group,
-        #         'group_name': ''
-        #     })
-        # self.assertEqual(response.status_code, 404)
-        # self.assertEqual(response.json()['msg'], '分组不存在')
+        response = self.client.post(
+            "/subscribe/group/update/",
+            {
+                'gid': new_group,
+                'group_name': ''
+            })
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['msg'], '新分组名为空')
 
 
         response = self.client.delete(
