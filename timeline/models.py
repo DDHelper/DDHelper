@@ -78,7 +78,7 @@ class TimelineEntry(models.Model):
         return {
             'dynamic_id': self.dynamic_id,
             'text': self.text,
-            'event_time': self.event_time,
+            'event_time': self.event_time.timestamp(),
             'type': self.type,
             'raw': self.dynamic.raw
         }
