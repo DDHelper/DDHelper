@@ -108,6 +108,27 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
             })
         self.assertEqual(response.status_code, 200)
 
+        #添加的up主不符合要求
+        response = self.client.post(
+            "/subscribe/subscribe/",
+            {
+                'mid': 484817723,
+                'gid': [new_group, default_group]
+            })
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()['msg'], '添加的up主不存在或不符合要求')
+
+        #添加的up主不存在
+        response = self.client.post(
+            "/subscribe/subscribe/",
+            {
+                'mid': 416622854645617,
+                'gid': [new_group, default_group]
+            })
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()['msg'], '添加的up主不存在或不符合要求')
+
+
         response = self.client.post(
             "/subscribe/group/update/",
             {
@@ -117,6 +138,36 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
         self.assertEqual(response.status_code, 200)
         json_body = response.json()
         self.assertEqual(json_body['data']['group_name'], 'new_group2')
+        
+        #移动成员
+        response = self.client.post(
+            "/subscribe/subscribe/",
+            {
+                'mid': 13946441,
+                'gid': [new_group]
+            })
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post(
+            "/subscribe/member/move/",
+            {
+                'old_group': new_group,
+                'new_group': default_group,
+                "mid_list" : [13946441],
+                'remove_old': 1
+            })
+        self.assertEqual(response.status_code, 200)
+
+        #移动成员分组不存在
+        response = self.client.post(
+            "/subscribe/member/move/",
+            {
+                'old_group': 16154849,
+                'new_group': new_group,
+                "mid_list" : [],
+                'remove_old': 1
+            })
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()['msg'], '分组不存在')
 
         # 分组名重复
         response = self.client.post(
@@ -137,6 +188,17 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
             })
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()['msg'], '分组不存在')
+
+        #分组改名，给空字符串
+        # response = self.client.post(
+        #     "/subscribe/group/update/",
+        #     {
+        #         'gid': new_group,
+        #         'group_name': ''
+        #     })
+        # self.assertEqual(response.status_code, 404)
+        # self.assertEqual(response.json()['msg'], '分组不存在')
+
 
         response = self.client.delete(
             "/subscribe/group/delete/",
@@ -193,14 +255,15 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
             {
                 'mid': [416622817],
                 'old_group': default_group,
-                'new_group': new_group1
+                'new_group': new_group2,
+                'remove_old': 0
             })
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get(
             "/subscribe/group/members",
             {
-                'gid': new_group1
+                'gid': new_group2
             })
         self.assertEqual(response.status_code, 200)
         json_body = response.json()

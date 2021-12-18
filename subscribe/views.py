@@ -234,7 +234,7 @@ def member_move(request):
         mid_list = [int(mid) for mid in request.POST.getlist('mid')]
         old_group = int(request.POST['old_group'])
         new_group = int(request.POST['new_group'])
-        remove_old = request.POST.get('remove_old', 1)  # 是否从旧分组里删除
+        remove_old = int(request.POST.get('remove_old', 1))  # 是否从旧分组里删除
 
     old_group = MemberGroup.get_group(aid=request.user.uid, gid=old_group)
     new_group = MemberGroup.get_group(aid=request.user.uid, gid=new_group)
