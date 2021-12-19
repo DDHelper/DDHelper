@@ -66,6 +66,15 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
             })
         self.assertEqual(response.status_code, 200)
 
+        #重复添加
+        response = self.client.post(
+            "/subscribe/subscribe/",
+            {
+                'mid': 416622817,
+                'gid': default_group
+            })
+        self.assertEqual(response.status_code, 200)
+
         response = self.client.get(
             "/subscribe/group/members",
             {
