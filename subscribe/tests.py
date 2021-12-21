@@ -10,6 +10,7 @@ from . import models
 
 class Login_Required_TestCase(TestCase):  # 检测Login_Required功能是否可以使用
     def test_login_required(self):
+        #未登录尝试搜索
         c = Client()
         response = c.get('/subscribe/search', {'search_name': 'vac47'})
         self.assertEqual(response.status_code, 403)
@@ -39,6 +40,14 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
             password='12345678',
             email='test@test.test')
         self.client.login(username='test_user', password='12345678')
+
+        #backup user
+        Userinfo.objects.create_user(
+            username='test_user2',
+            password='12345678',
+            email='test2@test.test')
+        self.client2 = Client()
+        self.client2.login(username='test_user2', password='12345678')
 
     def test_subscribe(self):
         response = self.client.get("/subscribe/group_list")
@@ -74,6 +83,40 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
                 'gid': default_group
             })
         self.assertEqual(response.status_code, 200)
+
+        #添加时无gid==删除
+        response = self.client.post(
+            "/subscribe/subscribe/",
+            {
+                'mid': 26139491,
+                'gid': default_group
+            })
+        response = self.client.post(
+            "/subscribe/subscribe/",
+            {
+                'mid': 26139491
+            })
+
+        response = self.client2.post(
+            "/subscribe/group/add/",
+            {
+                'group_name': 'new_group_for_2'
+            })
+        self.assertEqual(response.status_code, 200)
+        json_body = response.json()
+        self.assertEqual(json_body['success'], True)
+        self.assertEqual(json_body['data']['group_name'], 'new_group_for_2')
+        new_group_for_2 = json_body['data']['gid']
+        #添加到非自己的group
+        response = self.client.post(
+            "/subscribe/subscribe/",
+            {
+                'mid': 26139491,
+                'gid': new_group_for_2
+            })
+        #添加后搜索
+        response = self.client.get('/subscribe/search', {'search_name': '步玎Pudding'})
+        self.assertEqual(response.json()["data"][0]["mid"], 416622817)   
 
         response = self.client.get(
             "/subscribe/group/members",
