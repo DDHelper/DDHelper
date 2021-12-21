@@ -1,9 +1,12 @@
 from django.test import Client
 from django.test import TestCase
 from django.core.exceptions import ObjectDoesNotExist, BadRequest
-
+from django.http.response import JsonResponse
+from django.db.models import Count
+import subscribe.views
 from account.models import Userinfo
 from . import models
+from biliapi.tasks import get_data_if_valid
 
 
 # Create your tests here.
@@ -15,6 +18,11 @@ class Login_Required_TestCase(TestCase):  # 检测Login_Required功能是否可�
         response = c.get('/subscribe/search', {'search_name': 'vac47'})
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json()['msg'], "未登录")
+
+        # covering models.MemberGroup.select_groups_by_account if not query.exists(): 
+        # models.MemberGroup.select_groups_by_account(666)
+
+
 
 class SearchTestCase(TestCase):  # 检测搜索功能是否可以使用
     def setUp(self):
@@ -30,7 +38,15 @@ class SearchTestCase(TestCase):  # 检测搜索功能是否可以使用
         self.assertDictEqual(response.json(), {'code': 200,'data': []})        
 
         response = c.get('/subscribe/search', {'search_name': 'vac47'})
-        self.assertEqual(response.json()["data"][0]["mid"], 3985768)        
+        self.assertEqual(response.json()["data"][0]["mid"], 3985768)    
+
+        #covering /subscribe/search data is None
+        old_value = get_data_if_valid
+        def _get_data_if_valid(request):
+            return None, None
+        subscribe.views.get_data_if_valid = _get_data_if_valid
+        response = c.get('/subscribe/search', {'search_name': 'vac47'})
+        subscribe.views.get_data_if_valid = old_value    
 
 
 class SubscribeTestCase(TestCase):  # 检测列表管理功能
@@ -151,6 +167,11 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
         self.assertEqual(json_body['data']['group_name'], 'new_group')
 
         new_group = json_body['data']['gid']
+
+
+        #covering subscribe.views.add_new_member create is False
+        subscribe.views.add_new_member(416622817)
+
 
         response = self.client.post(
             "/subscribe/subscribe/",
