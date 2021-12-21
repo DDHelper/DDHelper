@@ -7,6 +7,7 @@ from . import models
 from DDHelper import settings
 
 # Create your tests here.
+from .models import Userinfo
 
 
 class RegisterTest(TestCase):
@@ -274,6 +275,43 @@ class LoginLogoutTest(TestCase):
 
         response = self.client.get("/account/user_info")
         self.assertEqual(response.status_code, 403)
+
+
+class ChangePasswordTest(TestCase):
+    def setUp(self):
+        Userinfo.objects.create_user(
+            username='test_user',
+            password='12345678',
+            email='test@test.test')
+        self.client.login(username='test_user', password='12345678')
+
+    def test_change_password(self):
+        response = self.client.post(
+            "/account/send_pin/",
+            {
+                "type": "change_password",
+            })
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.post(
+            "/account/change_password/",
+            {
+                "old_password": "12345678",
+                "new_password": "123456aabb",
+                "pin": self.client.session[views.REGISTER_PIN]
+            })
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/account/user_info")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.post(
+            "/account/login/",
+            {
+                "username": "test_user",
+                "password": "123456aabb",
+            })
+        self.assertEqual(response.status_code, 200)
 
 
 class SendPinTest(TestCase):

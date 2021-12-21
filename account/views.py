@@ -22,6 +22,11 @@ REGISTER_PIN_VERIFY_RETIES = 'REGISTER_PIN_VERIFY_RETIES'
 REGISTER_PIN_VERIFY_MAX_RETIES = 10
 REGISTER_PIN_TIME_OUT = 60
 
+OP_TYPE = {
+    "register": "注册",
+    "change_password": "修改密码",
+}
+
 
 @require_POST
 @csrf_exempt
@@ -72,6 +77,50 @@ def login(request):
 def logout(request):
     auth.logout(request)
     return JsonResponse({'code': 200})
+
+
+@login_required
+@require_POST
+def change_password(request):
+    with load_params():
+        old_password = request.POST['old_password']
+        new_password = request.POST['new_password']
+        email = request.user.email
+        pin = int(request.POST['pin'])
+
+    try:
+        if check_pin_timeout(request):
+            return JsonResponse({
+                'code': 400,
+                'msg': '验证码已超时'
+            }, status=400)
+        if not check_pin(request, email=email, pin=pin):
+            return JsonResponse({
+                'code': 400,
+                'msg': '验证码或邮箱不正确'
+            }, status=400)
+    except KeyError:
+        return JsonResponse({
+            'code': 400,
+            'msg': '请先获取验证码'
+        }, status=400)
+
+    clear_pin_info(request)
+
+    user = request.user
+    if not user.check_password(old_password):
+        return JsonResponse({
+            'code': 400,
+            'msg': '旧密码错误'
+        }, status=400)
+
+    user.set_password(new_password)
+    user.save()
+
+    auth.update_session_auth_hash(request, user)
+    auth.logout(request)
+
+    return JsonResponse({'code': 200, 'msg': ''})
 
 
 @login_required
@@ -178,7 +227,17 @@ def send_pin(request):
         pass
 
     with load_params():
-        email = request.POST['email']
+        op_type = request.POST.get('type', "register")
+        if op_type == "register":
+            email = request.POST['email']
+        else:
+            if request.user.is_authenticated:
+                email = request.user.email
+            else:
+                return JsonResponse({
+                    'code': 403,
+                    'msg': "未登录"
+                }, status=403)
 
     pin = random.randint(100000, 999999)
     request.session[REGISTER_SEND_PIN_TIME] = time.time()
@@ -187,8 +246,8 @@ def send_pin(request):
     request.session[REGISTER_PIN_VERIFY_RETIES] = 0
     try:
         mail.send_mail(
-            'DDHelper注册验证码',
-            f"您用于注册DDHelper账号的验证码为：{pin}",
+            f'DDHelper验证码',
+            f"您用于{OP_TYPE[op_type]}的验证码为：{pin}",
             settings.PIN_EMAIL,
             [email],
             fail_silently=settings.EMAIL_FAIL_SILENTLY,
