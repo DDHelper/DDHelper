@@ -8,7 +8,8 @@ from account.models import Userinfo
 from . import models
 from . import dsync
 from . import tasks
-from .models import DynamicSyncInfo, Dynamic
+from .models import DynamicSyncInfo, Dynamic, SyncTask
+from . import views
 
 from subscribe.models import SubscribeMember, MemberGroup
 from io import StringIO
@@ -76,10 +77,16 @@ class ModelTest(TestCase):
 class DsyncTest(TestCase):
     def setUp(self):
         Userinfo.objects.create_user(
+            uid=123,
             username='test_user',
             password='12345678',
             email='test@test.test')
         self.client.login(username='test_user', password='12345678')
+
+    # covering models.SyncTask.__str__()
+    def test_synctask(self):
+        task = SyncTask.objects.get_or_create(uuid=123)[0]
+        print(task)
 
     def test_dsync(self):
         member = SubscribeMember(mid=8401607)
@@ -127,6 +134,14 @@ class DsyncTest(TestCase):
         self.assertEqual(json['data']['has_more'], True)
         self.assertEqual(json['data']['data'][0]['dynamic_id'], offset)
 
+        # covering dynamic.views.DynamicSyncInfoLatestDetailView.get_object()
+        temp=views.DynamicSyncInfoLatestDetailView()
+        temp.get_object()
+
+        # group not exist
+        response = self.client.get("/dynamic/list", {'gid': 666})
+        self.assertEqual(response.status_code, 404)
+
         tasks.call_full_sync(min_interval=3600)
 
         sync_info = DynamicSyncInfo.get_latest()
@@ -159,3 +174,48 @@ class DsyncTest(TestCase):
             datetime.datetime(2021, 12, 16, 18, 0, 12, tzinfo=CST_TIME_ZONE),
         )
 
+    def test_DynamicSyncInfo(self):
+        response = self.client.get("/subscribe/group_list")
+        default_group = response.json()['data'][0]['gid']
+        response = self.client.post(
+            "/subscribe/subscribe/",
+            {
+                'mid': 416622817,
+                'gid': default_group
+            })
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/dynamic/list")
+        self.assertEqual(response.status_code, 200)
+        json = response.json()
+        self.assertEqual(json['data']['has_more'], True)
+        self.assertEqual(len(json['data']['data']), 20)
+        offset = json['data']['offset']
+
+        response = self.client.get("/dynamic/list", {'offset': offset})
+        self.assertEqual(response.status_code, 200)
+        json = response.json()
+        self.assertEqual(json['data']['has_more'], True)
+        self.assertEqual(json['data']['data'][0]['dynamic_id'], offset)
+
+        # covering dynamic.views.DynamicSyncInfoLatestDetailView.get_object()
+        temp=views.DynamicSyncInfoLatestDetailView()
+        temp.get_object()
+
+        # group not exist
+        response = self.client.get("/dynamic/list", {'gid': 666})
+        self.assertEqual(response.status_code, 404)
+
+        tasks.call_full_sync(min_interval=3600)
+
+        sync_info = DynamicSyncInfo.get_latest()
+        self.assertNotEqual(sync_info, None)
+        self.assertEqual(sync_info.finish(), True)
+        self.assertEqual(sync_info.total_tasks.count(), 0)
+        self.assertEqual(sync_info.success_tasks.count(), 0)
+
+        # covering models.DynamicSyncInfo
+        print(sync_info)
+        task = SyncTask.objects.get_or_create(uuid=123)[0]
+        sync_info.failed_tasks.add(task)
+        print(sync_info.pending_tasks)

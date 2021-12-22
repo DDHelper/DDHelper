@@ -20,6 +20,7 @@ class Login_Required_TestCase(TestCase):  # 检测Login_Required功能是否可�
             email='test@test.test')
 
     def test_login_required(self):
+        # covering models.MemberGroup.select_groups_by_account if not query.exists(): 
         models.MemberGroup.select_groups_by_account(1024)
         models.MemberGroup.select_groups_by_account(1024)
         #未登录尝试搜索
@@ -28,8 +29,7 @@ class Login_Required_TestCase(TestCase):  # 检测Login_Required功能是否可�
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json()['msg'], "未登录")
 
-        # from IPython import embed; embed()
-        # covering models.MemberGroup.select_groups_by_account if not query.exists(): 
+        
         
 
 
