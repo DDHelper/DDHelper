@@ -118,7 +118,8 @@ def parse_dynamic_card(card, member: SubscribeMember = None, set_member=False):
     """
     desc = card['desc']
     dy = Dynamic()
-    dy.dynamic_id = desc['dynamic_id']
+    dynamic_id_str = int(desc['dynamic_id_str'])
+    dy.dynamic_id = dynamic_id_str
     dy.dynamic_type = desc['type']
     dy.timestamp = timezone.datetime.fromtimestamp(desc['timestamp'], tz=CST_TIME_ZONE)
     dy.raw = card
