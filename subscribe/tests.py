@@ -12,15 +12,25 @@ from biliapi.tasks import get_data_if_valid
 # Create your tests here.
 
 class Login_Required_TestCase(TestCase):  # 检测Login_Required功能是否可以使用
+    def setUp(self):
+        Userinfo.objects.create_user(
+            uid=1024,
+            username='test_user',
+            password='12345678',
+            email='test@test.test')
+
     def test_login_required(self):
+        models.MemberGroup.select_groups_by_account(1024)
+        models.MemberGroup.select_groups_by_account(1024)
         #未登录尝试搜索
         c = Client()
         response = c.get('/subscribe/search', {'search_name': 'vac47'})
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json()['msg'], "未登录")
 
+        # from IPython import embed; embed()
         # covering models.MemberGroup.select_groups_by_account if not query.exists(): 
-        # models.MemberGroup.select_groups_by_account(666)
+        
 
 
 
