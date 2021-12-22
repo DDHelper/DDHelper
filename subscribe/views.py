@@ -71,7 +71,7 @@ def group_list(request):
 
     groups = MemberGroup.select_groups_by_account(request.user.uid).annotate(Count("members"))
     mid_groups = {}
-    if mid != 0:
+    if mid != 0 and MemberGroup.is_subscribed(request.user.uid, mid):
         mid_groups = set(MemberGroup.select_groups_by_account_and_member(request.user.uid, mid).values_list('gid', flat=True))
 
     data = []
