@@ -110,6 +110,17 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
             })
         self.assertEqual(response.status_code, 200)
 
+        response = self.client.get(
+            "/subscribe/group_list",
+            {
+                'mid': 416622817
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        json_body = response.json()
+        self.assertEqual(json_body['data'][0]['in_this_group'], True)
+
+
         #添加时无gid==删除
         response = self.client.post(
             "/subscribe/subscribe/",

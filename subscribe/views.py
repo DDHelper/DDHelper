@@ -66,17 +66,27 @@ def search(request):
 @require_GET
 @login_required
 def group_list(request):
+    with load_params():
+        mid = int(request.GET.get("mid", 0))
+
     groups = MemberGroup.select_groups_by_account(request.user.uid).annotate(Count("members"))
+    mid_groups = {}
+    if mid != 0:
+        mid_groups = set(MemberGroup.select_groups_by_account_and_member(request.user.uid, mid).values_list('gid', flat=True))
+
+    data = []
+    for group in groups:
+        entry = {
+            'gid': group.gid,
+            'group_name': group.group_name,
+            'count': group.members__count
+        }
+        if mid != 0:
+            entry['in_this_group'] = group.gid in mid_groups
+        data.append(entry)
     return JsonResponse({
         'code': 200,
-        'data': [
-            {
-                'gid': group.gid,
-                'group_name': group.group_name,
-                'count': group.members__count
-            }
-            for group in groups
-        ]
+        'data': data
     })
 
 
