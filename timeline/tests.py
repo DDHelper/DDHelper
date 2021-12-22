@@ -135,7 +135,7 @@ class TimelineTestCase(TestCase):
         info = TimelineDynamicProcessInfo.get(dynamic_id)
         self.assertEqual(info.should_update(), False)
         result: TimelineEntry = TimelineEntry.objects.filter(dynamic_id=dynamic_id).first()
-        print(result)
+
         # 判断结果
         if is_none:
             self.assertIsNone(result)
