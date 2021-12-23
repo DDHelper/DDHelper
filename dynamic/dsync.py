@@ -8,11 +8,6 @@ import pytz
 from DDHelper.settings import CST_TIME_ZONE
 
 
-class DsyncException(Exception):
-    def __init__(self, msg):
-        super(DsyncException, self).__init__(msg)
-
-
 def get_subscribe_member(mid: int):
     """
     获取一个成员，如果没有添加过则返回None
@@ -99,15 +94,14 @@ def get_all_dynamic_since(member: SubscribeMember, dynamic_id, max_count=50, max
                 break  # 已经到达了目标位置
             else:
                 dynamics.append(dy)
-        if data['has_more'] == 1:
-            next_offset = data['next_offset']
+        next_offset = data['next_offset']
         if len(dynamics) >= max_count or break_outer:
             break
         # TODO：根据时间判断是否终止循环
     return dynamics, None
 
 
-def parse_dynamic_card(card, member: SubscribeMember = None, set_member=False):
+def parse_dynamic_card(card, member: SubscribeMember = None):
     """
     将一个card解析为一个Dynamic对象
     :param card: 原始json数据
@@ -130,9 +124,4 @@ def parse_dynamic_card(card, member: SubscribeMember = None, set_member=False):
             return None
         else:
             dy.member = member
-    if set_member:
-        if dy.member is None:
-            dy.member = get_subscribe_member(desc['uid'])
-        if dy.member is None:
-            return None
     return dy

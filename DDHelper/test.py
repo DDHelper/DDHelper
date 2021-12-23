@@ -1,3 +1,4 @@
+import warnings
 from json import JSONDecodeError
 
 from django.test import TestCase
@@ -69,3 +70,7 @@ class MockTest(TestCase):
 
         with self.assertRaises(TestException):
             requests.get("https://test.com/aabb")
+
+    def test_warn(self):
+        with self.assertWarns(Warning):
+            warnings.warn("aaaa")
