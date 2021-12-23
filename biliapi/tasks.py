@@ -174,15 +174,16 @@ def api_retry(func):
                     retry += 1
                 else:
                     return result
-            except Exception:
+            except Exception as e:
                 retry += 1
+                if retry >= 4:
+                    raise e
     return call_func
 
 
 # noinspection PyTypeChecker
 def call_api(url, params=None, headers=None, timeout=DEFAULT_TIMEOUT, **kwargs):
-    if headers is None:
-        headers = USER_AGENT
+    headers = headers or USER_AGENT
     # 使用代理的情况下不进行拦截判定
     # check_security()
     rsp = requests.get(
@@ -323,28 +324,4 @@ def search_user_name(name: str):
         "search_type": "bili_user",
         "keyword": name
     }
-
-
-# noinspection PyTypeChecker
-@shared_task
-@bili_api(base_url="http://api.bilibili.com/x/web-interface/search/all/v2", use_proxy=False)
-def search_user_id(mid: int):
-    """
-    获取mid对应的成员的信息
-    由于对于延迟敏感，不使用代理池，也不使用默认延迟
-    :param mid:
-    :return:
-    """
-    return {
-        "search_type": "bili_user",
-        "keyword": f'uid:{mid}'
-    }
-
-
-if __name__ == '__main__':
-    import json
-    # print(client_info())
-    # print(json.dumps(space_history(557839, 0), indent=2, ensure_ascii=False))
-    # print(user_profile(489391680))
-    print(user_stat(489391680, use_proxy=False))
 
