@@ -204,6 +204,25 @@ def call_api(url, params=None, headers=None, timeout=DEFAULT_TIMEOUT, **kwargs):
         return rsp.json()
 
 
+def bili_api(base_url, use_proxy=True):
+    def _w1(func):
+        @wraps(func)
+        def call_func(*args, **kwargs):
+            if kwargs.pop('use_proxy', use_proxy):
+                return call_api(
+                    base_url,
+                    params=func(*args, **kwargs)
+                )
+            else:
+                return call_api(
+                    base_url,
+                    params=func(*args, **kwargs),
+                    proxies=None
+                )
+        return call_func
+    return _w1
+
+
 def get_data_if_valid(rsp, fallback_msg="unknown"):
     """
     如果rsp合理，则提取出data部分，否则返回None
@@ -227,6 +246,7 @@ def get_data_if_valid(rsp, fallback_msg="unknown"):
 @api_retry
 @clear_proxy_info_on_error
 @with_default_wait
+@bili_api(base_url="http://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history")
 def space_history(host_uid: int, offset_dynamic_id: int):
     """
     获取动态列表
@@ -234,27 +254,22 @@ def space_history(host_uid: int, offset_dynamic_id: int):
     :param offset_dynamic_id: 起始动态id，默认为0（获取最新的动态），不包括这个id的动态
     :return:
     """
-    return call_api(
-        "http://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history",
-        params={
-            "visitor_uid": 0,
-            "host_uid": host_uid,
-            "offset_dynamic_id": offset_dynamic_id
-        },
-    )
+    return {
+        "visitor_uid": 0,
+        "host_uid": host_uid,
+        "offset_dynamic_id": offset_dynamic_id
+    }
 
 
 @shared_task()
 @api_retry
 @clear_proxy_info_on_error
 @with_default_wait
+@bili_api(base_url="https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/get_dynamic_detail")
 def dynamic_detail(dynamic_id):
-    return call_api(
-        "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/get_dynamic_detail",
-        params={
-            "dynamic_id": dynamic_id
-        }
-    )
+    return {
+        "dynamic_id": dynamic_id
+    }
 
 
 # noinspection PyTypeChecker
@@ -262,19 +277,17 @@ def dynamic_detail(dynamic_id):
 @api_retry
 @clear_proxy_info_on_error
 @with_default_wait
+@bili_api(base_url="http://api.bilibili.com/x/space/acc/info")
 def user_profile(mid: int):
     """
     获取b站用户数据
     :param mid: b站用户id
     :return:
     """
-    return call_api(
-        "http://api.bilibili.com/x/space/acc/info",
-        params={
-            "mid": mid,
-            "jsonp": "jsonp"
-        },
-    )
+    return {
+        "mid": mid,
+        "jsonp": "jsonp"
+    }
 
 
 # TODO 部分要求低延迟的api需要一个不使用代理的解决方案
@@ -282,25 +295,23 @@ def user_profile(mid: int):
 # noinspection PyTypeChecker
 @shared_task()
 @clear_proxy_info_on_error
+@bili_api(base_url="http://api.bilibili.com/x/relation/stat", use_proxy=False)
 def user_stat(mid: int):
     """
     获取b站用户数据
     :param mid: b站用户id
     :return:
     """
-    return call_api(
-        "http://api.bilibili.com/x/relation/stat",
-        params={
-            "vmid": mid,
-            "jsonp": "jsonp"
-        },
-        proxies=None
-    )
+    return {
+        "vmid": mid,
+        "jsonp": "jsonp"
+    }
 
 
 # noinspection PyTypeChecker
 @shared_task
 @clear_proxy_info_on_error
+@bili_api(base_url="http://api.bilibili.com/x/web-interface/search/type", use_proxy=False)
 def search_user_name(name: str):
     """
     根据关键字搜索用户名
@@ -308,18 +319,15 @@ def search_user_name(name: str):
     :param name: 关键字
     :return:
     """
-    return call_api(
-        "http://api.bilibili.com/x/web-interface/search/type",
-        params={
-            "search_type": "bili_user",
-            "keyword": name
-        },
-        proxies=None
-    )
+    return {
+        "search_type": "bili_user",
+        "keyword": name
+    }
 
 
 # noinspection PyTypeChecker
 @shared_task
+@bili_api(base_url="http://api.bilibili.com/x/web-interface/search/all/v2", use_proxy=False)
 def search_user_id(mid: int):
     """
     获取mid对应的成员的信息
@@ -327,19 +335,16 @@ def search_user_id(mid: int):
     :param mid:
     :return:
     """
-    return call_api(
-        "http://api.bilibili.com/x/web-interface/search/all/v2",
-        params={
-            "search_type": "bili_user",
-            "keyword": f'uid:{mid}'
-        },
-        proxies=None
-    )
+    return {
+        "search_type": "bili_user",
+        "keyword": f'uid:{mid}'
+    }
 
 
 if __name__ == '__main__':
     import json
     # print(client_info())
-    print(json.dumps(space_history(557839, 0), indent=2, ensure_ascii=False))
+    # print(json.dumps(space_history(557839, 0), indent=2, ensure_ascii=False))
     # print(user_profile(489391680))
+    print(user_stat(489391680, use_proxy=False))
 
