@@ -268,8 +268,10 @@ def member_move(request):
 
 def add_new_member(mid):
     # 成功添加up主到up主数据库则返回True，否则返回False
-    profile, msg = get_data_if_valid(user_profile.delay(mid).get())
-    stat, s_msg = get_data_if_valid(user_stat.delay(mid).get())
+    pf_call = user_profile.delay(mid, use_proxy=False)
+    stat_call = user_stat.delay(mid, use_proxy=False)
+    profile, msg = get_data_if_valid(pf_call.get())
+    stat, s_msg = get_data_if_valid(stat_call.get())
     if profile is None or stat is None:
         return False
 
