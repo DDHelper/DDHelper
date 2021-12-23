@@ -1,14 +1,18 @@
 import time
 import datetime
+import uuid
+
 from django.test import TestCase
 from django.utils import timezone
 import pytz
 
+from DDHelper.util import mock, fake_request
 from account.models import Userinfo
 from . import models
 from . import dsync
 from . import tasks
-from .models import DynamicSyncInfo, Dynamic
+from .models import DynamicSyncInfo, Dynamic, SyncTask
+from biliapi import tasks as biliapi
 
 from subscribe.models import SubscribeMember, MemberGroup
 from io import StringIO
@@ -72,6 +76,26 @@ class ModelTest(TestCase):
         self.assertEqual(str(d.timestamp), "2021-11-04 07:00:08+00:00")
         self.assertEqual(str(d.timestamp.astimezone(CST_TIME_ZONE)), "2021-11-04 15:00:08+08:00")
 
+    def test_sync_info_models(self):
+        task_id = uuid.uuid4()
+        sync_task = SyncTask(uuid=task_id)
+        self.assertEqual(str(sync_task), str(task_id))
+        sync_task.save()
+
+        sync_info = DynamicSyncInfo(sid=1)
+        sync_info.save()
+
+        sync_info.total_tasks.add(sync_task)
+        sync_info.success_tasks.add(sync_task)
+        sync_info.failed_tasks.add(sync_task)
+        with self.assertWarns(Warning):
+            self.assertEqual(sync_info.pending_tasks, 0)
+            time.sleep(0.1)
+            sync_info = DynamicSyncInfo.objects.get(pk=1)
+            self.assertNotEqual(sync_info.time_cost, 0)
+            self.assertEqual(sync_info.as_dict()['sid'], 1)
+            sync_info.__str__()
+
 
 class DsyncTest(TestCase):
     def setUp(self):
@@ -80,6 +104,83 @@ class DsyncTest(TestCase):
             password='12345678',
             email='test@test.test')
         self.client.login(username='test_user', password='12345678')
+
+    def test_update_member_profile(self):
+        member = SubscribeMember(mid=100)
+        rsp = dsync.update_member_profile(
+            member,
+            data=dict(mid=100, name="test", face="http://test.test"),
+            auto_save=False)
+
+        self.assertEqual(rsp, None)
+        self.assertEqual(member.name, 'test')
+        self.assertEqual(member.face, "http://test.test")
+
+        member = SubscribeMember(mid=100)
+        rsp = dsync.update_member_profile(
+            member,
+            data=dict(mid=101, name="test", face="http://test.test"),
+            auto_save=False)
+        self.assertEqual(rsp, "mid mismatch")
+
+        member = SubscribeMember(mid=100)
+        with mock(biliapi,
+                  requests=fake_request(".*", 200, {'code': -1, 'msg': 'test'})):
+            self.assertEqual(
+                dsync.update_member_profile(member, auto_save=False),
+                'test'
+            )
+
+    def test_get_all_dynamic(self):
+        with mock(biliapi,
+                  requests=fake_request(".*", 200, {'code': -1, 'msg': 'test'})):
+            member = SubscribeMember(mid=100)
+            self.assertEqual(dsync.get_all_dynamic_since(member, 0)[1], 'test')
+
+        with mock(biliapi,
+                  requests=fake_request(".*", 200, {'code': 0, 'data': {'has_more': 0}})):
+            member = SubscribeMember(mid=100)
+            self.assertEqual(len(dsync.get_all_dynamic_since(member, 0)[0]), 0)
+
+    def test_parse_dynamic_card(self):
+        with self.assertWarns(Warning):
+            self.assertIsNone(dsync.parse_dynamic_card(
+                {
+                    'desc': {
+                        'dynamic_id': 100,
+                        'dynamic_id_str': '100',
+                        'type': 1,
+                        'timestamp': 100000,
+                        'uid': 100
+                    }
+                },
+                SubscribeMember(mid=101)
+            ))
+
+        self.assertEqual(dsync.parse_dynamic_card(
+            {
+                'desc': {
+                    'dynamic_id': 100,
+                    'dynamic_id_str': '100',
+                    'type': 1,
+                    'timestamp': 100000,
+                    'uid': 100
+                }
+            },
+            SubscribeMember(mid=100)
+        ).dynamic_id, 100)
+
+        self.assertIsNone(dsync.parse_dynamic_card(
+            {
+                'desc': {
+                    'dynamic_id': 100,
+                    'dynamic_id_str': '100',
+                    'type': 1,
+                    'timestamp': 100000,
+                    'uid': 100
+                }
+            }
+        ).member_id)
 
     def test_dsync(self):
         member = SubscribeMember(mid=8401607)
