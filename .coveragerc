@@ -12,6 +12,7 @@ omit =
     biliapi/views.py
     dynamic/testdata/import_test_members.py
     timeline/tests.py
+    */management/*
 [report]
 show_missing = True
 skip_covered = True

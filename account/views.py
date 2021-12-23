@@ -1,5 +1,6 @@
 import random
 import time
+from contextlib import contextmanager
 
 import django.contrib.auth as auth
 
@@ -88,24 +89,9 @@ def change_password(request):
         email = request.user.email
         pin = int(request.POST['pin'])
 
-    try:
-        if check_pin_timeout(request):
-            return JsonResponse({
-                'code': 400,
-                'msg': '验证码已超时'
-            }, status=400)
-        if not check_pin(request, email=email, pin=pin):
-            return JsonResponse({
-                'code': 400,
-                'msg': '验证码或邮箱不正确'
-            }, status=400)
-    except KeyError:
-        return JsonResponse({
-            'code': 400,
-            'msg': '请先获取验证码'
-        }, status=400)
-
-    clear_pin_info(request)
+    rsp = do_check_pin(request, email, pin)
+    if rsp is not None:
+        return rsp
 
     user = request.user
     if not user.check_password(old_password):
@@ -164,24 +150,9 @@ def register(request):
         email = request.POST['email']
         pin = int(request.POST['pin'])
 
-    try:
-        if check_pin_timeout(request):
-            return JsonResponse({
-                'code': 400,
-                'msg': '验证码已超时'
-            }, status=400)
-        if not check_pin(request, email=email, pin=pin):
-            return JsonResponse({
-                'code': 400,
-                'msg': '验证码或邮箱不正确'
-            }, status=400)
-    except KeyError:
-        return JsonResponse({
-            'code': 400,
-            'msg': '请先获取验证码'
-        }, status=400)
-
-    clear_pin_info(request)
+    rsp = do_check_pin(request, email, pin)
+    if rsp is not None:
+        return rsp
 
     if Userinfo.objects.filter(Q(username=username) | Q(email=email)).exists():
         return JsonResponse({
@@ -259,6 +230,34 @@ def send_pin(request):
             'exception': str(e) if settings.DEBUG else ""
         }, status=400)
     return JsonResponse({'code': 200, 'msg': ''})
+
+
+def do_check_pin(request, email, pin):
+    """
+    检查email和pin值，如果失败返回JsonResponse
+    :param request:
+    :param email:
+    :param pin:
+    :return:
+    """
+    try:
+        if check_pin_timeout(request):
+            return JsonResponse({
+                'code': 400,
+                'msg': '验证码已超时'
+            }, status=400)
+        if not check_pin(request, email=email, pin=pin):
+            return JsonResponse({
+                'code': 400,
+                'msg': '验证码或邮箱不正确'
+            }, status=400)
+    except KeyError:
+        return JsonResponse({
+            'code': 400,
+            'msg': '请先获取验证码'
+        }, status=400)
+
+    clear_pin_info(request)
 
 
 def check_pin_timeout(request):

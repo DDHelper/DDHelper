@@ -283,9 +283,44 @@ class ChangePasswordTest(TestCase):
             username='test_user',
             password='12345678',
             email='test@test.test')
-        self.client.login(username='test_user', password='12345678')
 
     def test_change_password(self):
+
+        response = self.client.post(
+            "/account/send_pin/",
+            {
+                "type": "change_password",
+            })
+        self.assertEqual(response.status_code, 403)
+
+        self.client.login(username='test_user', password='12345678')
+
+        response = self.client.post(
+            "/account/change_password/",
+            {
+                "old_password": "1234567899",
+                "new_password": "123456aabb",
+                "pin": 123
+            })
+        self.assertEqual(response.status_code, 400)
+        self.assertDictEqual(response.json(), {'code': 400, "msg": "请先获取验证码"})
+
+        response = self.client.post(
+            "/account/send_pin/",
+            {
+                "type": "change_password",
+            })
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.post(
+            "/account/change_password/",
+            {
+                "old_password": "1234567899",
+                "new_password": "123456aabb",
+                "pin": self.client.session[views.REGISTER_PIN]
+            })
+        self.assertEqual(response.status_code, 400)
+
         response = self.client.post(
             "/account/send_pin/",
             {
