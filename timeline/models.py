@@ -61,6 +61,10 @@ class TimelineEntry(models.Model):
         default='NT'
     )
 
+    class Meta:
+        ordering = ['-event_time']
+        indexes = [models.Index(fields=['event_time'])]
+
     @classmethod
     def select_entry_in_group(cls, group, offset):
         """
