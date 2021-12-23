@@ -268,3 +268,21 @@ class DsyncTest(TestCase):
             print('tasks.add_member() Exception OK')
 
         tasks.add_member(888, initial_sync=False, create_subscribe_member_in_place=True)
+
+    def test_sync_member(self):
+        # covering tasks.sync_member()
+        response = self.client.get("/subscribe/group_list")
+        default_group = response.json()['data'][0]['gid']
+        response = self.client.post(
+            "/subscribe/subscribe/",
+            {
+                'mid': 416622817,
+                'gid': default_group
+            })
+        self.assertEqual(response.status_code, 200)
+        try:
+            tasks.sync_member(234)
+        except:
+            print('mid exception ok')
+        tasks.sync_member(416622817)
+        tasks.sync_member(416622817)
