@@ -16,21 +16,20 @@ from biliapi.tasks import search_user_name, user_profile, user_stat, get_data_if
 @login_required
 def search(request):
     """
+    根据搜索关键字查找b站up主
+    :param request: GET型request
     请求参数
-    Body:
-    参数名称	参数类型	是否必须	示例	备注
-    search_name	T文本	是	嘉然今天吃什么
-
+        search_name	string 必要 搜索关键字
+    :return: Response
     返回数据
-    名称         	类型	     是否必须	默认值	备注	其他信息
-    data         	object	 非必须
-     - mid          num      必须     up主B站uid
-     - name	        string   必须     up主姓名
-     - fans	        num	     必须     up主粉丝数
-     - usign	    string	 必须     up主签名
-     - upic         string   必须     up主头像地址
-     - raw          object   必须     原始查询结果
-    code	integer	必须
+        data object_array 查询到的信息
+        - mid num up主B站uid
+        - name string up主姓名
+        - fans num up主粉丝数
+        - usign string up主签名
+        - upic string up主头像地址
+        - raw object 原始查询结果
+        code integer 状态码
     """
     with load_params():
         name = request.GET['search_name']
@@ -66,6 +65,20 @@ def search(request):
 @require_GET
 @login_required
 def group_list(request):
+    """
+    查找用户的全部分组的信息以及某个up主是否在某个分组中(可选)
+    :param request: GET型request
+    请求参数
+        mid	num 非必要 待查询的up主id
+    :return: Response
+    返回数据
+        data object_array 查到分组的详细信息
+        - gid num 分组id
+        - group_name string 分组名称
+        - count num 某分组成员数
+        - in_this_group string 查找的up主是否在此分组
+        code integer 状态码
+    """
     with load_params():
         mid = int(request.GET.get("mid", 0))
 
@@ -93,9 +106,26 @@ def group_list(request):
 @require_GET
 @login_required
 def group_members(request):
-    # URL形式传入需要切换的分组名
-    # 传入gid，若无gid传入则显示默认全部分组
-    # 传回显示分组的用户信息以及分组列表
+    """
+    根据分组id查询分组内的成员
+    :param request: GET型request
+    请求参数
+        gid	num 非必要 需要查询的分组id,不传入时显示当前用户默认分组
+        page num 非必要 当前所在页数-1
+        size num 非必要 当前页可容纳条目数量，默认为20条每页
+    :return: Response
+    返回数据
+        data object
+        - has_more bool 是否还有未加载的成员
+        - gid num 分组id
+        - group_name 分组名称
+        - count num 该分组下成员总数
+        - page num 当前所在页数-1
+        - pages num 总共页数
+        - data object_array 各成员原始查询结果
+        code integer 状态码
+        msg string 出错信息
+    """
     with load_params():
         gid = int(request.GET.get('gid', 0))
         page = int(request.GET.get('page', 0))
@@ -130,8 +160,17 @@ def group_members(request):
 @require_POST
 @login_required
 def subscribe(request):
-    # POST形式提交需要关注的up主的mid以及需要加入的分组的gid(以list形式)
-    # 返回是否关注成功的结果result(success/fail)
+    """
+    根据提交的mid和gid来关注某个up主并加入若干个分组
+    :param request: POST型request
+    请求参数
+        mid	num 必要 需要查询的分组id,不传入时显示当前用户默认分组
+        gid num_array 必要 需要加入的分组id列表
+    :return: Response
+    返回数据
+        code integer 状态码
+        msg string 出错信息
+    """
     with load_params():
         mid = int(request.POST['mid'])  # 需要关注的对象，以mid传递
         groups = [int(gid) for gid in request.POST.getlist('gid')]
@@ -149,6 +188,19 @@ def subscribe(request):
 @require_POST
 @login_required
 def add_group(request):
+    """
+    增加新的分组
+    :param request: POST型request
+    请求参数
+        group_name string 必要 新增分组的名称
+    :return: Response
+    返回数据
+        code integer 状态码
+        success bool 是否成功创建(同名会失败)
+        data object
+        - gid num 创建的分组id(失败时为同名分组id)
+        - group_name 分组名称(失败时为同名分组名称)
+    """
     # POST提交新增分组的名称group_name
     # 返回是否关注成功的结果result(success/fail)
     with load_params():
@@ -170,9 +222,18 @@ def add_group(request):
 @login_required
 def update_group(request):
     """
-    更新分组信息
-    :param request:
-    :return:
+    修改已有的分组
+    :param request: POST型request
+    请求参数
+        gid	num 必要 需要修改的分组id
+        group_name string 必要 修改后新分组的名称
+    :return: Response
+    返回数据
+        data object
+        - gid num 修改了的分组id
+        - group_name 修改后新分组名称
+        code integer 状态码
+        msg string 出错信息
     """
     with load_params():
         gid = int(request.POST['gid'])
@@ -215,6 +276,16 @@ def update_group(request):
 @require_http_methods(['DELETE'])
 @login_required
 def delete_group(request):
+    """
+    删除已有的分组
+    :param request: DELETE型request
+    请求参数
+        gid	num 必要 需要删除的分组id
+    :return: Response
+    返回数据
+        code integer 状态码
+        msg string 出错信息
+    """
     with load_params():
         body = QueryDict(request.body.decode("utf-8"),encoding="utf-8")
         gid = int(body['gid'])
@@ -241,9 +312,17 @@ def delete_group(request):
 @login_required
 def member_move(request):
     """
-    移动一批成员到另一个分组里
-    :param request:
-    :return:
+    将一个分组内的一批成员移动到另一分组
+    :param request: POST型request
+    请求参数
+        mid	num_array 必要 需要移动的成员的id列表
+        old_group num 必要 需要移动的成员所在分组id
+        new_group num 必要 成员将要移往的分组id
+        remove_old num 非必要 是否要将移动成员从旧分组删除
+    :return: Response
+    返回数据
+        code integer 状态码
+        msg string 出错信息
     """
     with load_params():
         mid_list = [int(mid) for mid in request.POST.getlist('mid')]
@@ -267,6 +346,11 @@ def member_move(request):
 
 
 def add_new_member(mid):
+    """
+    添加新的up主到数据库
+    :param mid: 待添加的up主的id
+    :return: Bool 成功为True，失败为False
+    """
     # 成功添加up主到up主数据库则返回True，否则返回False
     pf_call = user_profile.delay(mid, use_proxy=False)
     stat_call = user_stat.delay(mid, use_proxy=False)

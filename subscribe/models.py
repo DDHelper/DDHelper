@@ -22,7 +22,10 @@ class SubscribeMember(models.Model):
     def as_dict(self):
         """
         暂时替代序列化的一种实现
-        :return:
+        :return: 序列化结果 
+                {成员id mid
+                成员用户名 name
+                成员头像 face}
         """
         # TODO 使用序列化器
         return {
@@ -46,13 +49,19 @@ class MemberGroup(models.Model):
     def get_or_create_default_group(cls, aid):
         """
         获取或者创建用户的默认分组
-        :param aid:
-        :return: (Userinfo, bool)
+        :param aid: 需要获取或创建默认分组的用户id
+        :return: (MemberGroup, bool) 获取或者创建的默认分组，获取还是创建
         """
         return MemberGroup.objects.get_or_create(user_id=aid, group_name=DEFAULT_GROUP_NAME)
 
     @classmethod
     def get_group(cls, aid, gid):
+        """
+        获取某个用户的某个分组
+        :param aid: 需要获取分组的用户id
+        :param gid: 需要获取分组的分组id
+        :return: MemberGroup 获取到的分组
+        """
         if gid == 0:
             return MemberGroup.get_or_create_default_group(aid=aid)[0]
         else:
@@ -61,9 +70,9 @@ class MemberGroup(models.Model):
     @classmethod
     def select_groups_by_account(cls, aid):
         """
-        根据一个账号查找所有分组
-        :param aid:
-        :return:
+        根据一个用户id查找所有分组
+        :param aid: 需要查找其所有分组的用户id
+        :return: QuerySet 查找到的所有分组
         """
         query = MemberGroup.objects.filter(user=aid)
         if not query.exists():
@@ -74,8 +83,9 @@ class MemberGroup(models.Model):
     def select_groups_by_account_and_member(cls, aid, mid):
         """
         查找一个用户关注的某个成员所在的分组列表
-        :param mid:
-        :return:
+        :param aid: 待查找的用户id
+        :param mid: 待查找的成员id
+        :return: QuerySet 该成员所在的所有分组
         """
         return SubscribeMember.objects.get(mid=mid).membergroup_set.filter(user=aid)
 
@@ -83,9 +93,9 @@ class MemberGroup(models.Model):
     def is_subscribed(cls, aid, mid):
         """
         查询一个用户是否关注了某个成员
-        :param aid:
-        :param mid:
-        :return:
+        :param aid: 待确认是否关注的用户id
+        :param mid: 待确认是否关注的成员id
+        :return: Bool 关注为True，未关注为False
         """
         try:
             member = SubscribeMember.objects.get(mid=mid)
@@ -97,10 +107,10 @@ class MemberGroup(models.Model):
     def set_groups_by_account_and_member(cls, aid, mid, groups):
         """
         修改一个用户关注的某个成员所在的分组列表
-        :param aid:
-        :param mid:
-        :param groups:
-        :return:
+        :param aid: 待修改的用户的id
+        :param mid: 待修改的成员的id
+        :param groups: 待修改的分组列表
+        :return: None
         """
         member = SubscribeMember.objects.get(mid=mid)
         old_groups = set(MemberGroup.select_groups_by_account_and_member(aid, mid).values_list('gid', flat=True))
