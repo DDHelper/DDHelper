@@ -260,3 +260,11 @@ class DsyncTest(TestCase):
             datetime.datetime(2021, 12, 16, 18, 0, 12, tzinfo=CST_TIME_ZONE),
         )
 
+    def test_add_member(self):
+        tasks.add_member(666, create_subscribe_member_in_place=True)
+        try:
+            tasks.add_member(777, create_subscribe_member_in_place=False)
+        except:
+            print('tasks.add_member() Exception OK')
+
+        tasks.add_member(888, initial_sync=False, create_subscribe_member_in_place=True)
