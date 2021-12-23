@@ -13,6 +13,7 @@ from celery.utils.log import get_task_logger
 from dynamic.models import Dynamic
 from timeline.models import TimelineEntry, TimelineDynamicProcessInfo
 
+# 中文数字和阿拉伯数字的转换
 chinese_number = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7,
                   '八': 8, '九': 9, '十': 10, '十一': 11, '十二': 12, '十三': 13,
                   '十四': 14, '十五': 15, '十六': 16, '十七': 17, '十八': 18,
@@ -24,11 +25,18 @@ logger: logging.Logger = get_task_logger(__name__)
 
 
 class TimelineException(Exception):
+    # 捕捉Timeline所引起的异常
     def __init__(self, msg):
         super(TimelineException, self).__init__(msg)
 
 
 def day_of_month(month, year):
+    """
+    返回某年某月的天数
+    :param month: 要查询的月份
+    :param year: 要查询的年份
+    :return: integer 该年该月的天数
+    """
     days_of_month = [31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     if month != 2:
         return days_of_month[month - 1]
@@ -41,6 +49,12 @@ def day_of_month(month, year):
 
 
 def find_day_in_text(text, now):
+    """
+    在文本中提取日期
+    :param text: 要提取日期的文本
+    :param now: 进行提取时作为基准的现在的时间
+    :return: integer 某个月的日期
+    """
     now = now.astimezone(CST_TIME_ZONE)
 
     # 在一段文本中寻找日期
@@ -79,7 +93,11 @@ def find_day_in_text(text, now):
 
 
 def find_hourandmin_in_text(text):
-    # 在一段文本中寻找具体时刻
+    """
+    在文本中提取小时和分钟
+    :param text: 要提取小时和分钟的文本
+    :return: (integer,integer) 提取的小时和分钟
+    """
     # TODO: 此处应当再添加对于12点，1点的支持，还有对于上午下午晚上的识别
     hour_and_min_template = {0: '[0-9]{1,2}[点时:：][0-9]{2}[分]?',
                              1: '[0-9零一二三四五六七八九十]{1,3}点半'}
@@ -101,7 +119,12 @@ def find_hourandmin_in_text(text):
 
 
 def find_time_in_appointment(appointment, now):
-    # 此函数用于匹配b站自带的预约功能显示文本中出现的时间
+    """
+    在文本中按照b站自带的预约功能提取文本中出现的时间
+    :param appointment: b站自带的预约功能的文本
+    :param now: 进行提取时作为基准的现在的时间
+    :return: datetime 提取的时间对象
+    """
     now = now.astimezone(CST_TIME_ZONE)
 
     result_year = now.year
@@ -126,8 +149,12 @@ def find_time_in_appointment(appointment, now):
 
 
 def find_time_in_text(dynamic_text, now):
-    # 此函数用于检测并提取文本中包含的时间，成功检出时间返回检出的时间(datetime类型)，否则返回None
-    # 设置默认解析值
+    """
+    在动态文本中检测并提取文本中包含的时间
+    :param dynamic_text: 需要提取时间的动态文本
+    :param now: 进行提取时作为基准的现在的时间
+    :return: datetime 提取的时间对象(提取失败返回None)
+    """
     now = now.astimezone(CST_TIME_ZONE)
 
     result_year = now.year
@@ -155,7 +182,11 @@ def find_time_in_text(dynamic_text, now):
 
 
 def extract_from_text(text):
-    # 从动态文本中提取摘要
+    """
+    在文本中提取文本摘要
+    :param text: 需要提取摘要的文本
+    :return: string 提取的摘要信息
+    """
     extract_length = 30  # 暂定提取前30个字作为摘要
     if len(text) >= extract_length:  # 处理动态文本少于30个字的情况
         return text[0:extract_length]
@@ -164,7 +195,11 @@ def extract_from_text(text):
 
 
 def classify_dynamic(dynamic_text):
-    # 输入b站动态文本，对动态进行分类，返回标签
+    """
+    对输入的动态文本进行分类
+    :param dynamic_text: 需要分类的动态文本
+    :return: string 文本分类的结果，具体分类类型见model定义处
+    """
     stream_keywords = ['直播', '播']
     lottery_keywords = ['开奖', '抽奖', '抽']
     release_keywords = ['投稿', '新视频', '新歌', '新曲']
@@ -182,6 +217,11 @@ def classify_dynamic(dynamic_text):
 
 @shared_task
 def process_timeline(dynamic_id):
+    """
+    对dynamic进行处理得到timeline对象
+    :param dynamic_id: 需要处理的dynamic对象
+    :return: None
+    """
     logger.info(f"开始提取timeline：{dynamic_id}")
     info = TimelineDynamicProcessInfo.get(dynamic_id)
     if not info.should_update():
@@ -197,6 +237,11 @@ def process_timeline(dynamic_id):
 
 
 def do_process(dynamic_id):
+    """
+    对dynamic执行文字、日期提取和分类并构建timeline对象
+    :param dynamic_id: 需要处理的dynamic对象
+    :return: None
+    """
     origin_dynamic = Dynamic.objects.get(dynamic_id=dynamic_id)
     origin_dynamic.timestamp = origin_dynamic.timestamp.astimezone(CST_TIME_ZONE)
     dynamic_type = origin_dynamic.raw['desc']['type']
@@ -220,7 +265,6 @@ def do_process(dynamic_id):
         return
     else:  # 其他类型的动态不太可能是时效性信息，直接舍弃
         return
-
     # 先提取时间信息判断是否为时效性动态
     dynamic_time = None
     try:  # 先检测是否使用了B站已有的直播预约功能,由预约信息中提取时间

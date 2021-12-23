@@ -33,22 +33,18 @@ OP_TYPE = {
 @csrf_exempt
 def login(request):
     """
+    用户登录，登录成功，返回用户信息，通过Set-Cookies返回认证信息，登录失败，code设置为403，不返回data
+    :param request: POST型request
     请求参数
-    Body:
-    参数名称	    参数类型	是否必须	    示例	    备注
-    username	T文本	是	    pawn
-    password	T文本	是	    123456
-
+        username string 必要 登录用户名
+        password string 必要 登陆密码
+    :return: Response
     返回数据
-    名称	     类型	是否必须	默认值	备注	其他信息
-    code	number	必须
-    msg	    string	非必须
-    data	object	必须
-     - uid	string	必须
-
-    使用账号名和密码进行登录。
-    如果登录成功，返回用户信息，通过Set-Cookies返回认证信息
-    如果登录失败，code设置为403，不返回data
+        data object
+        - uid num 登录的用户id
+        - username 登录的用户名
+        code num 状态码
+        msg string 出错信息
     """
     with load_params():
         username = request.POST['username']
@@ -76,6 +72,13 @@ def login(request):
 @require_POST
 @csrf_exempt
 def logout(request):
+    """
+    用户登出
+    :param request: POST型request
+    :return: Response
+    返回数据
+        code num 状态码
+    """
     auth.logout(request)
     return JsonResponse({'code': 200})
 
@@ -83,6 +86,18 @@ def logout(request):
 @login_required
 @require_POST
 def change_password(request):
+    """
+    用户更新密码
+    :param request: POST型request
+    请求参数
+        old_password string 必要 旧密码
+        new_password string 必要 新密码
+        pin num 必要 验证码
+    :return: Response
+    返回数据
+        code num 状态码
+        msg string 出错信息
+    """
     with load_params():
         old_password = request.POST['old_password']
         new_password = request.POST['new_password']
@@ -113,6 +128,17 @@ def change_password(request):
 @require_GET
 @csrf_exempt
 def user_info(request):
+    """
+    获取用户信息
+    :param request: GET型request
+    :return: Response
+    返回数据
+        code num 状态码
+        data object 用户信息
+        - username string 用户名
+        - uid num 用户id
+        - email string 用户邮箱
+    """
     user = request.user
     return JsonResponse({
         "code": 200,
@@ -128,21 +154,17 @@ def user_info(request):
 @csrf_exempt
 def register(request):
     """
+    用户注册
+    :param request: POST型request
     请求参数
-    Body:
-    参数名称	    参数类型	是否必须	示例	       备注
-    username	T文本	是	    user_abcd
-    password	T文本	是	    123456abcd
-    email       T文本    是      123546@sss.com
-    pin         T文本	是	    3242
-
+        username string 必要 登录用户名
+        password string 必要 登陆密码
+        email string 必要 注册邮箱
+        pin num 必要 验证码
+    :return: Response
     返回数据
-    名称	     类型	是否必须	默认值	备注	其他信息
-    code	integer	必须
-    msg	    string	非必须
-
-    注册一个账号。
-    如果失败，code设置为403，msg为失败的原因
+        code num 状态码
+        msg string 出错信息
     """
     with load_params():
         username = request.POST['username']
@@ -174,19 +196,14 @@ def register(request):
 @csrf_exempt
 def send_pin(request):
     """
+    向给定邮箱发送验证码
+    :param request: POST型request
     请求参数
-    Body:
-    参数名称	    参数类型	是否必须	示例	       备注
-    email       T文本	是	    123456abcd@xx.xxx
-
+        email string 非必要 未注册用户发送验证码的邮箱
+    :return: Response
     返回数据
-    名称	     类型	是否必须	默认值	备注	其他信息
-    code	integer	必须
-    msg	    string	非必须
-
-    注册一个账号。
-    如果填写成功，发送pin
-    如果失败，code设置为403，msg为失败的原因
+        code num 状态码
+        msg string 出错信息
     """
     try:
         if not check_pin_timeout(request):
@@ -234,11 +251,14 @@ def send_pin(request):
 
 def do_check_pin(request, email, pin):
     """
-    检查email和pin值，如果失败返回JsonResponse
+    检查email和pin值
     :param request:
-    :param email:
-    :param pin:
-    :return:
+    :param email: 待检查的邮箱
+    :param pin: 待检查的验证码
+    :return: Response
+    返回数据
+        code num 状态码
+        msg string 出错信息
     """
     try:
         if check_pin_timeout(request):
@@ -263,8 +283,8 @@ def do_check_pin(request, email, pin):
 def check_pin_timeout(request):
     """
     检查验证码是否超时，超时后删除验证码信息
-    :param request:
-    :return:
+    :param request: request
+    :return: Bool 超时则为真
     """
     timeout = (time.time() - request.session[REGISTER_SEND_PIN_TIME]) > REGISTER_PIN_TIME_OUT
     if timeout:
@@ -275,12 +295,12 @@ def check_pin_timeout(request):
 def check_pin(request, email, pin):
     """
     检查一个请求的验证码状态，并增加一次尝试计数。
-    超过最大尝试时返回False
     :param request:
-    :param email:
-    :param pin:
-    :return:
+    :param email: 待检查的邮箱
+    :param pin: 待检查的验证码
+    :return: Bool 超过最大尝试次数时返回False，否则返回True
     """
+    
     request.session[REGISTER_PIN_VERIFY_RETIES] += 1
     if request.session[REGISTER_PIN_VERIFY_RETIES] >= REGISTER_PIN_VERIFY_MAX_RETIES:
         return False
@@ -293,7 +313,7 @@ def clear_pin_info(request):
     """
     清除注册用的验证码相关信息
     :param request:
-    :return:
+    :return: None
     """
     del request.session[REGISTER_PIN]
     del request.session[REGISTER_EMAIL]
@@ -305,21 +325,16 @@ def clear_pin_info(request):
 @csrf_exempt
 def verify_pin(request):
     """
+    验证一个账号的注册邮箱
+    :param request: GET型request
     请求参数
-    Body:
-    参数名称	    参数类型	是否必须	示例	       备注
-    pin      	T文本	是	    1947
-    email       T文本	是	    12354@aaa.com
-
+        email string 必要 待验证的邮箱
+        pin string 必要 待验证的验证码
+    :return: Response
     返回数据
-    名称	     类型	是否必须	默认值	备注	其他信息
-    code	integer	必须
-    match   bool    必须
-    msg	    string	非必须
-
-    验证一个账号的注册邮箱。
-    如果验证成功，正常返回
-    如果验证失败，code设置为403，msg为失败的原因
+        match bool 验证码是否验证正确，正确返回True，否则False
+        code num 状态码
+        msg string 出错信息
     """
     with load_params():
         email = request.GET['email']
