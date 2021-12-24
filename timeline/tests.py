@@ -86,10 +86,8 @@ class TextFunctionTestcase(TestCase):  # 测试文本的提取、日期的提取
 
         # covering TimelineException
         now = datetime.datetime(2021, 12, 2, tzinfo=CST_TIME_ZONE)
-        try:
+        with self.assertRaises(tasks.TimelineException):
             tasks.find_time_in_appointment("xx-21 20:00", now=now)
-        except tasks.TimelineException:
-            print('TimelineException ok')
 
     def test_find_time_in_text(self):  # 测试文本时间提取功能
         now = datetime.datetime(2021, 12, 6, tzinfo=CST_TIME_ZONE)
@@ -142,7 +140,7 @@ class TimelineTestCase(TestCase):
         info = TimelineDynamicProcessInfo.get(dynamic_id)
         self.assertEqual(info.should_update(), False)
         result: TimelineEntry = TimelineEntry.objects.filter(dynamic_id=dynamic_id).first()
-        print(result)
+
         # 判断结果
         if is_none:
             self.assertIsNone(result)
