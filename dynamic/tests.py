@@ -262,10 +262,8 @@ class DsyncTest(TestCase):
 
     def test_add_member(self):
         tasks.add_member(666, create_subscribe_member_in_place=True)
-        try:
+        with self.assertRaises(Exception):
             tasks.add_member(777, create_subscribe_member_in_place=False)
-        except:
-            print('tasks.add_member() Exception OK')
 
         tasks.add_member(888, initial_sync=False, create_subscribe_member_in_place=True)
 
@@ -280,9 +278,7 @@ class DsyncTest(TestCase):
                 'gid': default_group
             })
         self.assertEqual(response.status_code, 200)
-        try:
+        with self.assertRaises(Exception):
             tasks.sync_member(234)
-        except:
-            print('mid exception ok')
         tasks.sync_member(416622817)
         tasks.sync_member(416622817)

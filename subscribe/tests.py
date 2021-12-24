@@ -91,7 +91,7 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
                 'gid': default_group
             })
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.json()['msg'], "添加的up主不存在或不符合要求")
+        self.assertEqual(response.json()['msg'], "添加的up主不存在或不符合要求（至少需要1000粉丝）")
 
         response = self.client.post(
             "/subscribe/subscribe/",
@@ -221,7 +221,7 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
                 'gid': [new_group, default_group]
             })
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.json()['msg'], '添加的up主不存在或不符合要求')
+        self.assertEqual(response.json()['msg'], '添加的up主不存在或不符合要求（至少需要1000粉丝）')
 
         #添加的up主不存在
         response = self.client.post(
@@ -231,7 +231,7 @@ class SubscribeTestCase(TestCase):  # 检测列表管理功能
                 'gid': [new_group, default_group]
             })
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.json()['msg'], '添加的up主不存在或不符合要求')
+        self.assertEqual(response.json()['msg'], '添加的up主不存在或不符合要求（至少需要1000粉丝）')
 
 
         response = self.client.post(
