@@ -15,12 +15,29 @@
 
 所有的配置都可以通过环境变量进行配置，如果使用docker镜像的话可以通过 --env-file 来进行配置
 
+### 数据服务
+
+#### MySQL
+你需要一个支持MySQL协议的数据库，租用一个数据库服务器或者在你自己的机器上运行mysql都是可以的，你只需要在环境变量里配置好用户名、密码、数据库主机即可。
+
+
+#### RabbitMQ
+作为Celery的依赖使用。
+
+你需要安装RabbitMQ，创建一个用户以及vhost，然后把这些配置填写在环境变量里。
+
+
+如果你是在使用docker，请不要使用localhost，请使用你的服务器的内网ip。
+
 ### 部署各个服务
 可以选择使用docker compose一键部署或者手动部署各个服务
 #### 1. Docker compose
 在Deploy文件夹中有docker-compose.yml配置文件，
 
-在您的工作目录里通过envfile.txt配置好环境变量后，使用一些指令即可在本机上开启所有需要的服务
+在您的工作目录里通过envfile.txt配置好环境变量后，使用下面的指令即可在本机上开启所有需要的服务：
+```shell
+sudo docker-compose up --force-recreate -d
+```
 
 envfile.txt的示例：
 ```txt
