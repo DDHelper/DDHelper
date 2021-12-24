@@ -179,7 +179,7 @@ def subscribe(request):
         if not add_new_member(mid):
             return JsonResponse({
                 'code': 404,
-                'msg': "添加的up主不存在或不符合要求"
+                'msg': "添加的up主不存在或不符合要求（至少需要1000粉丝）"
             }, status=404)
     MemberGroup.set_groups_by_account_and_member(aid=request.user.uid, mid=mid, groups=groups)
     return JsonResponse({'code': 200})
